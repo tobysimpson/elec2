@@ -19,7 +19,7 @@ void wrt_vtk(struct lvl_obj *lvl, struct ocl_obj *ocl, int frm_idx)
     char file1_name[250];
     
     //file name
-    sprintf(file1_name, "%s/%s.%02d.%03d.vtk", ROOT_WRITE, "grid", lvl->le, frm_idx);
+    sprintf(file1_name, "%s/%s.%02d.%03d.vtk", ROOT_WRITE, "grid", lvl->idx, frm_idx);
     
     //open
     file1 = fopen(file1_name,"wb");
@@ -37,11 +37,28 @@ void wrt_vtk(struct lvl_obj *lvl, struct ocl_obj *ocl, int frm_idx)
      ===================
      */
     
-    fprintf(file1,"\nPOINTS %d float\n", lvl->msh.nv_tot);
+    
+//    fprintf(file1,"\nPOINTS %zu float\n", lvl->nv_tot);
+//    
+//    //coords
+//    for(int k=0; k<lvl->msh.nv.z; k++)
+//    {
+//        for(int j=0; j<lvl->msh.nv.y; j++)
+//        {
+//            for(int i=0; i<lvl->msh.nv.x; i++)
+//            {
+//                fprintf(file1, "%e %e %e\n", i*lvl->msh.dx, j*lvl->msh.dx, k*lvl->msh.dx);
+//            }
+//        }
+//    }
+    
+    
+    
+    fprintf(file1,"\nPOINTS %zu float\n", lvl->nv_tot);
     //map
-    cl_float4 *xx = clEnqueueMapBuffer(ocl->command_queue, lvl->xx, CL_TRUE, CL_MAP_READ, 0, lvl->msh.nv_tot*sizeof(cl_float4), 0, NULL, NULL, &ocl->err);
+    cl_float4 *xx = clEnqueueMapBuffer(ocl->command_queue, lvl->xx, CL_TRUE, CL_MAP_READ, 0, lvl->nv_tot*sizeof(cl_float4), 0, NULL, NULL, &ocl->err);
     //write
-    for(int i=0; i<lvl->msh.nv_tot; i++)
+    for(size_t i=0; i<lvl->nv_tot; i++)
     {
         fprintf(file1, "%e %e %e\n", xx[i].x, xx[i].y, xx[i].z);
     }
@@ -50,7 +67,7 @@ void wrt_vtk(struct lvl_obj *lvl, struct ocl_obj *ocl, int frm_idx)
     
     
     //point data flag
-    fprintf(file1,"\nPOINT_DATA %d\n", lvl->msh.nv_tot);
+    fprintf(file1,"\nPOINT_DATA %zu\n", lvl->nv_tot);
     
     
 //    fprintf(file1,"VECTORS xx float\n");
@@ -68,9 +85,9 @@ void wrt_vtk(struct lvl_obj *lvl, struct ocl_obj *ocl, int frm_idx)
     fprintf(file1,"SCALARS xx float 4\n");
     fprintf(file1,"LOOKUP_TABLE default\n");
     //map
-    xx = clEnqueueMapBuffer(ocl->command_queue, lvl->xx, CL_TRUE, CL_MAP_READ, 0, lvl->msh.nv_tot*sizeof(cl_float4), 0, NULL, NULL, &ocl->err);
+    xx = clEnqueueMapBuffer(ocl->command_queue, lvl->xx, CL_TRUE, CL_MAP_READ, 0, lvl->nv_tot*sizeof(cl_float4), 0, NULL, NULL, &ocl->err);
     //write
-    for(int i=0; i<lvl->msh.nv_tot; i++)
+    for(int i=0; i<lvl->nv_tot; i++)
     {
         fprintf(file1, "%e %e %e %e\n", xx[i].x, xx[i].y, xx[i].z, xx[i].w);
     }
@@ -82,18 +99,16 @@ void wrt_vtk(struct lvl_obj *lvl, struct ocl_obj *ocl, int frm_idx)
     fprintf(file1,"SCALARS uu float 4\n");
     fprintf(file1,"LOOKUP_TABLE default\n");
     //map
-    cl_float4 *uu = clEnqueueMapBuffer(ocl->command_queue, lvl->uu, CL_TRUE, CL_MAP_READ, 0, lvl->msh.nv_tot*sizeof(cl_float4), 0, NULL, NULL, &ocl->err);
+    cl_float4 *uu = clEnqueueMapBuffer(ocl->command_queue, lvl->uu, CL_TRUE, CL_MAP_READ, 0, lvl->nv_tot*sizeof(cl_float4), 0, NULL, NULL, &ocl->err);
     //write
-    for(int i=0; i<lvl->msh.nv_tot; i++)
+    for(size_t i=0; i<lvl->nv_tot; i++)
     {
         fprintf(file1, "%e %e %e %e\n", uu[i].x, uu[i].y, uu[i].z, uu[i].w);
     }
     //unmap
     clEnqueueUnmapMemObject(ocl->command_queue, lvl->uu, uu, 0, NULL, NULL);
     
-    
 
-    
     //clean up
     fclose(file1);
     

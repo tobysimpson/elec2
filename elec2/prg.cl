@@ -45,7 +45,7 @@ struct msh_obj
     int     ne_tot;
     int     nv_tot;
     
-    float   dx2;
+    float   dx2; //(dx*dx) for calcs
 };
 
 /*
@@ -147,14 +147,15 @@ float fn_g0(float3 x)
 }
 
 
-////cube
-//float fn_g1(float3 x)
-//{
-//    float3 c = (float3){0e0f, 0e0f, 0e0f};
-//    float3 r = (float3){8e0f, 8e0f, 8e0f};
-//
+//cube
+float fn_g1(float3 x)
+{
+    float3 c = (float3){0e0f, 0e0f, 0e0f};
+    float3 r = (float3){4e0f, 4e0f, 4e0f};
+
 //    return sdf_cub(x, c, r);
-//}
+    return sdf_sph(x, c, 4.0f);
+}
 
 //epicardium
 float fn_e1(float3 x)
@@ -163,26 +164,26 @@ float fn_e1(float3 x)
 }
 
 
-//heart
-float fn_g1(float3 x)
-{
-    //epicardium
-    float s1 = fn_e1(x);
-    
-    //subtract endocardium for void
-    float cap1 = sdf_cap(x, (float3){0e0f, 0e0f, -2e0f}, (float3){0e0f, 0e0f, +2e0f}, 4.0f);    //endo
-    s1 = max(s1, -cap1);
-    
-    //insulate a/v
-    float cyl1 = sdf_cyl(x, (float3){0e0f, 0e0f, 1e0f}, 7e0f, 1e0f); //horiz
-    s1 = max(s1, -cyl1);
-    
-    //add purk
-    float cyl2 = sdf_cyl(x, (float3){0e0f, 0e0f, 0e0f}, 1e0f, 7e0f);
-    s1 = min(s1,cyl2);
-    
-    return s1;
-}
+////heart
+//float fn_g1(float3 x)
+//{
+//    //epicardium
+//    float s1 = fn_e1(x);
+//    
+//    //subtract endocardium for void
+//    float cap1 = sdf_cap(x, (float3){0e0f, 0e0f, -2e0f}, (float3){0e0f, 0e0f, +2e0f}, 4.0f);    //endo
+//    s1 = max(s1, -cap1);
+//    
+//    //insulate a/v
+//    float cyl1 = sdf_cyl(x, (float3){0e0f, 0e0f, 1e0f}, 7e0f, 1e0f); //horiz
+//    s1 = max(s1, -cyl1);
+//    
+//    //add purk
+//    float cyl2 = sdf_cyl(x, (float3){0e0f, 0e0f, 0e0f}, 1e0f, 7e0f);
+//    s1 = min(s1,cyl2);
+//    
+//    return s1;
+//}
 
 
 /*
@@ -202,7 +203,7 @@ kernel void vtx_ini(const  struct msh_obj  msh,
     float3 x = msh.dx*convert_float3(vtx_pos - msh.nv/2);
 
     xx[vtx_idx] = (float4){x, fn_g1(x)};
-    uu[vtx_idx] = (float4){fn_g0(x)<=0e0f, 1.0f, 0e0f, 0e0f}; //stim
+    uu[vtx_idx] = (float4){fn_g0(x)<=0e0f, 1.0f, 0e0f, fn_g1(x)}; //stim
     
     return;
 }

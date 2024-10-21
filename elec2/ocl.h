@@ -24,6 +24,12 @@ struct ocl_obj
     cl_program          program;
     char                device_str[50];
     cl_event            event;
+    
+    //kernels
+    cl_kernel       vtx_ini;
+    cl_kernel       vtx_ion;
+    cl_kernel       vtx_hrt;
+    cl_kernel       vtx_trs;
 };
 
 
@@ -103,6 +109,19 @@ void ocl_ini(struct ocl_obj *ocl)
 
     //clear
     free(log);
+    
+    /*
+     =============================
+     kernels
+     =============================
+     */
+    
+    //kernels
+    ocl->vtx_ini = clCreateKernel(ocl->program, "vtx_ini", &ocl->err);
+    ocl->vtx_ion = clCreateKernel(ocl->program, "vtx_ion", &ocl->err);
+    ocl->vtx_hrt = clCreateKernel(ocl->program, "vtx_hrt", &ocl->err);
+    ocl->vtx_trs = clCreateKernel(ocl->program, "vtx_trs", &ocl->err);
+    
 }
 
 
@@ -112,6 +131,12 @@ void ocl_fin(struct ocl_obj *ocl)
     //queue
     ocl->err = clFlush(ocl->command_queue);
     ocl->err = clFinish(ocl->command_queue);
+    
+    //kernels
+    ocl->err = clReleaseKernel(ocl->vtx_ini);
+    ocl->err = clReleaseKernel(ocl->vtx_ion);
+    ocl->err = clReleaseKernel(ocl->vtx_hrt);
+    ocl->err = clReleaseKernel(ocl->vtx_trs);
     
     //context
     ocl->err = clReleaseProgram(ocl->program);
