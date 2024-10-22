@@ -5,7 +5,6 @@
 //  Created by Toby Simpson on 08.02.24.
 //
 
-//#include "geo.h"
 
 /*
  ===================================
@@ -42,10 +41,7 @@ struct msh_obj
     int3    ne;
     int3    nv;
     
-    int     ne_tot;
-    int     nv_tot;
-    
-    float   dx2; //(dx*dx) for calcs
+    float   dx2; //(dx*dx)
 };
 
 /*
@@ -136,54 +132,52 @@ float sdf_cyl(float3 x, float3 c, float r, float h)
  ===================================
  */
 
+//torso
+float fn_g0(float3 x)
+{
+    float3 c = (float3){0e0f, 0e0f, 0e0f};
+
+    return sdf_cyl(x, c, 8.0f, 8.0f);
+}
+
+
+//epicardium
+float fn_g1(float3 x)
+{
+    return sdf_cap(x, (float3){0e0f, 0e0f, -2e0f}, (float3){0e0f, 0e0f, +2e0f}, 6.0f);
+}
+
+
+//heart
+float fn_g2(float3 x)
+{
+    //epicardium
+    float s1 = fn_g1(x);
+    
+    //subtract endocardium for void
+    float cap1 = sdf_cap(x, (float3){0e0f, 0e0f, -2e0f}, (float3){0e0f, 0e0f, +2e0f}, 4.0f);    //endo
+    s1 = max(s1, -cap1);
+    
+    //insulate a/v
+    float cyl1 = sdf_cyl(x, (float3){0e0f, 0e0f, 1e0f}, 7e0f, 1e0f); //horiz
+    s1 = max(s1, -cyl1);
+    
+    //add purk
+    float cyl2 = sdf_cyl(x, (float3){0e0f, 0e0f, 0e0f}, 1e0f, 7e0f);
+    s1 = min(s1,cyl2);
+    
+    return s1;
+}
+
 
 //stimulus
-float fn_g0(float3 x)
+float fn_g3(float3 x)
 {
     float3 c = (float3){-4e0f, 0e0f, +5e0f};
     float  r = 1.0f;
     
     return sdf_sph(x, c, r);
 }
-
-
-//cube
-float fn_g1(float3 x)
-{
-    float3 c = (float3){0e0f, 0e0f, 0e0f};
-    float3 r = (float3){4e0f, 4e0f, 4e0f};
-
-//    return sdf_cub(x, c, r);
-    return sdf_sph(x, c, 4.0f);
-}
-
-//epicardium
-float fn_e1(float3 x)
-{
-    return sdf_cap(x, (float3){0e0f, 0e0f, -2e0f}, (float3){0e0f, 0e0f, +2e0f}, 6.0f);
-}
-
-
-////heart
-//float fn_g1(float3 x)
-//{
-//    //epicardium
-//    float s1 = fn_e1(x);
-//    
-//    //subtract endocardium for void
-//    float cap1 = sdf_cap(x, (float3){0e0f, 0e0f, -2e0f}, (float3){0e0f, 0e0f, +2e0f}, 4.0f);    //endo
-//    s1 = max(s1, -cap1);
-//    
-//    //insulate a/v
-//    float cyl1 = sdf_cyl(x, (float3){0e0f, 0e0f, 1e0f}, 7e0f, 1e0f); //horiz
-//    s1 = max(s1, -cyl1);
-//    
-//    //add purk
-//    float cyl2 = sdf_cyl(x, (float3){0e0f, 0e0f, 0e0f}, 1e0f, 7e0f);
-//    s1 = min(s1,cyl2);
-//    
-//    return s1;
-//}
 
 
 /*
@@ -194,7 +188,7 @@ float fn_e1(float3 x)
 
 //init
 kernel void vtx_ini(const  struct msh_obj  msh,
-                    global float4          *xx,
+                    global float4          *gg,
                     global float4          *uu)
 {
     int3 vtx_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
@@ -202,7 +196,7 @@ kernel void vtx_ini(const  struct msh_obj  msh,
 
     float3 x = msh.dx*convert_float3(vtx_pos - msh.nv/2);
 
-    xx[vtx_idx] = (float4){x, fn_g1(x)};
+    gg[vtx_idx] = (float4){fn_g0(x), fn_g1(x), fn_g2(x), fn_g3(x)};
     uu[vtx_idx] = (float4){fn_g0(x)<=0e0f, 1.0f, 0e0f, fn_g1(x)}; //stim
     
     return;
@@ -259,7 +253,7 @@ kernel void vtx_hrt(const  struct msh_obj  msh,
         int3    adj_pos = vtx_pos + off_fac[k];
         int     adj_idx = fn_idx1(adj_pos, msh.nv);
         float3  adj_x   = msh.dx*convert_float3(adj_pos - msh.nv/2);
-        int     adj_bnd = fn_g1(adj_x)<=0e0f;   //zero neumann
+        int     adj_bnd = fn_g2(adj_x)<=0e0f;   //zero neumann
         
         d -= adj_bnd;
         s += adj_bnd*(uu[adj_idx].x - u.x);
@@ -272,7 +266,7 @@ kernel void vtx_hrt(const  struct msh_obj  msh,
 //    uu[vtx_idx].x += -alp*s/d;
     
     //ie jacobi (I- alpD)ˆ-1 * (uˆt - (I - alpA)uˆk)), uˆk is the iterate, uˆt is rhs
-    uu[vtx_idx].x += (fn_g1(x)<=0e0f)*(u.w - (u.x - alp*s))/(1.0f - alp*d);     //heart only
+    uu[vtx_idx].x += (fn_g2(x)<=0e0f)*(u.w - (u.x - alp*s))/(1.0f - alp*d);     //heart only
     
     return;
 }
@@ -297,7 +291,7 @@ kernel void vtx_trs(const  struct msh_obj  msh,
     {
         int3    adj_pos = vtx_pos + off_fac[k];
         int     adj_idx = fn_idx1(adj_pos, msh.nv);
-        int     adj_bnd = fn_bnd1(adj_pos, msh.nv);     //zero meumann
+        int     adj_bnd = fn_bnd1(adj_pos, msh.nv);     //zero neumann
         
         d -= adj_bnd;
         s += adj_bnd*(uu[adj_idx].x - u.x); //zero neumann
@@ -308,7 +302,7 @@ kernel void vtx_trs(const  struct msh_obj  msh,
     float alp = MD_SIG_T*msh.dt/msh.dx2;
     
     //laplace Dˆ-1(b-Au), b=0
-    uu[vtx_idx].x += (fn_e1(x)>0e0f)*-alp*s/d; //torso only, dirichlet on heart surface
+    uu[vtx_idx].x += (fn_g1(x)>0e0f)*-alp*s/d; //torso only, dirichlet on heart surface
     
     //ie jacobi (I- alpD)ˆ-1 * (uˆt - (I - alpA)uˆk)), uˆk is the iterate, uˆt is rhs
 //    uu[vtx_idx].x += (fn_g1(x)>0e0f)*(u.w - (u.x - alp*s))/(1.0f - alp*d);
@@ -316,3 +310,116 @@ kernel void vtx_trs(const  struct msh_obj  msh,
     return;
 }
 
+
+/*
+ ===================================
+ mg
+ ===================================
+ */
+
+//reset
+kernel void vtx_rst(const  struct msh_obj  msh,
+                    global float           *uu)
+{
+    int3 vtx_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
+    int  vtx_idx  = fn_idx1(vtx_pos, msh.nv);
+
+    uu[vtx_idx] = 0e0f;
+
+    return;
+}
+
+
+
+//residual
+kernel void vtx_res(const  struct msh_obj    msh,
+                    global float            *uu,
+                    global float            *bb,
+                    global float            *rr)
+{
+    int3 vtx_pos  = (int3){get_global_id(0), get_global_id(1), get_global_id(2)} + 1; //interior
+    int  vtx_idx  = fn_idx1(vtx_pos, msh.nv);
+    
+    //stencil
+    float s = 0.0f;
+    s += uu[fn_idx1(vtx_pos + (int3){1,0,0}, msh.nv)];
+    s += uu[fn_idx1(vtx_pos - (int3){1,0,0}, msh.nv)];
+    s += uu[fn_idx1(vtx_pos + (int3){0,1,0}, msh.nv)];
+    s += uu[fn_idx1(vtx_pos - (int3){0,1,0}, msh.nv)];
+    s += uu[fn_idx1(vtx_pos + (int3){0,0,1}, msh.nv)];
+    s += uu[fn_idx1(vtx_pos - (int3){0,0,1}, msh.nv)];
+    
+    //scale
+    float Au = (s - 6.0f*uu[vtx_idx])/(msh.dx*msh.dx);
+    
+    //store
+    rr[vtx_idx] = bb[vtx_idx] - Au;
+
+    return;
+}
+
+
+//jacobi
+kernel void vtx_jac(const  struct msh_obj    msh,
+                    global float            *uu,
+                    global float            *rr)
+{
+    int3 vtx_pos  = (int3){get_global_id(0), get_global_id(1), get_global_id(2)} + 1; //interior
+    int  vtx_idx  = fn_idx1(vtx_pos, msh.nv);
+    
+    //du = D^-1(b - (L+U))u_k) - D^-1Du_k = D^-1(r)
+    uu[vtx_idx] -= 0.8f*(msh.dx*msh.dx)*rr[vtx_idx]/6e0f;
+
+    return;
+}
+
+
+//projection
+kernel void vtx_prj(const  struct msh_obj    msh,    //coarse    (out)
+                    global float            *bb,    //coarse    (out)
+                    global float            *rr)    //fine      (in)
+{
+    int3 vtx_pos  = (int3){get_global_id(0), get_global_id(1), get_global_id(2)}; //coarse
+    int  vtx_idx0  = fn_idx1(vtx_pos, msh.nv);
+    
+    //injection
+    int  vtx_idx1  = fn_idx1(2*vtx_pos, 2*msh.ne+1);
+    
+    //store
+    bb[vtx_idx0] = rr[vtx_idx1];
+
+    return;
+}
+
+
+//interpolation
+kernel void vtx_itp(const  struct msh_obj    msh,    //fine      (out)
+                    global float            *u0,    //coarse    (in)
+                    global float            *u1)    //fine      (out)
+{
+    int3 vtx_pos  = (int3){get_global_id(0), get_global_id(1), get_global_id(2)}; //fine
+    int  vtx_idx  = fn_idx1(vtx_pos, msh.nv);   //fine
+    
+    //coarse
+    float3 pos = convert_float3(vtx_pos)/2e0f;
+    
+    //round up/down
+    int3 pos0 = convert_int3(floor(pos));
+    int3 pos1 = convert_int3(ceil(pos));
+    
+    int3 dim = 1+(msh.nv-1)/2;
+    
+    float s = 0e0f;
+    s += u0[fn_idx1((int3){pos0.x, pos0.y, pos0.z}, dim)];
+    s += u0[fn_idx1((int3){pos1.x, pos0.y, pos0.z}, dim)];
+    s += u0[fn_idx1((int3){pos0.x, pos1.y, pos0.z}, dim)];
+    s += u0[fn_idx1((int3){pos1.x, pos1.y, pos0.z}, dim)];
+    s += u0[fn_idx1((int3){pos0.x, pos0.y, pos1.z}, dim)];
+    s += u0[fn_idx1((int3){pos1.x, pos0.y, pos1.z}, dim)];
+    s += u0[fn_idx1((int3){pos0.x, pos1.y, pos1.z}, dim)];
+    s += u0[fn_idx1((int3){pos1.x, pos1.y, pos1.z}, dim)];
+    
+    u1[vtx_idx] += s/8e0f;
+    
+    return;
+}

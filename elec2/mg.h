@@ -31,12 +31,12 @@ void mg_ini(struct mg_obj *mg, struct ocl_obj *ocl)
     mg->nl = 4;
     
     //dims
-    mg->le[0] = 7;
-    mg->le[1] = 7;
-    mg->le[2] = 7;
+    mg->le[0] = 6;
+    mg->le[1] = 6;
+    mg->le[2] = 6;
     
     //scale
-    mg->dx = 0.125f;
+    mg->dx = 0.25f;
     mg->dt = 0.1f;
     
     //allocate
@@ -66,18 +66,17 @@ void mg_ini(struct mg_obj *mg, struct ocl_obj *ocl)
         lvl->nv_tot = lvl->nv[0]*lvl->nv[1]*lvl->nv[2];
         
         //memory
-        lvl->xx = clCreateBuffer(ocl->context, CL_MEM_HOST_READ_ONLY, lvl->nv_tot*sizeof(cl_float4), NULL, &ocl->err);
+        lvl->gg = clCreateBuffer(ocl->context, CL_MEM_HOST_READ_ONLY, lvl->nv_tot*sizeof(cl_float4), NULL, &ocl->err);
         lvl->uu = clCreateBuffer(ocl->context, CL_MEM_HOST_READ_ONLY, lvl->nv_tot*sizeof(cl_float4), NULL, &ocl->err);
         
         //debug
-        printf("idx %d\n", lvl->idx);
-        printf("dx %e\n", lvl->msh.dx);
-        printf("dt %e\n", lvl->msh.dt);
+        printf("i  %d\n", lvl->idx);
+        printf("dx %f\n", lvl->msh.dx);
+        printf("dt %f\n", lvl->msh.dt);
         printf("ne %d %d %d\n", lvl->msh.ne.x, lvl->msh.ne.y, lvl->msh.ne.z);
-        printf("nv %d %d %d\n", lvl->msh.nv.x, lvl->msh.nv.y, lvl->msh.nv.z);
-        
-        printf("nv      %zu %zu %zu\n", lvl->nv[0], lvl->nv[1], lvl->nv[2]);
-        printf("nv_tot  %zu\n", lvl->nv_tot);
+//        printf("nv %d %d %d\n", lvl->msh.nv.x, lvl->msh.nv.y, lvl->msh.nv.z);
+//        printf("nv %zu %zu %zu\n", lvl->nv[0], lvl->nv[1], lvl->nv[2]);
+//        printf("nv_tot  %zu\n", lvl->nv_tot);
 
     }
     
@@ -94,7 +93,7 @@ void mg_fin(struct mg_obj *mg, struct ocl_obj *ocl)
         struct lvl_obj *lvl = &mg->lvls[i];
         
         //memory
-        ocl->err = clReleaseMemObject(lvl->xx);
+        ocl->err = clReleaseMemObject(lvl->gg);
         ocl->err = clReleaseMemObject(lvl->uu);
     }
     

@@ -20,7 +20,7 @@ struct lvl_obj
     size_t          nv_tot;
     
     //memory
-    cl_mem          xx;
+    cl_mem          gg;
     cl_mem          uu;
 };
 

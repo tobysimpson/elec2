@@ -26,10 +26,10 @@ struct ocl_obj
     cl_event            event;
     
     //kernels
-    cl_kernel       vtx_ini;
-    cl_kernel       vtx_ion;
-    cl_kernel       vtx_hrt;
-    cl_kernel       vtx_trs;
+    cl_kernel           vtx_ini;
+    cl_kernel           vtx_ion;
+    cl_kernel           vtx_hrt;
+    cl_kernel           vtx_trs;
 };
 
 
