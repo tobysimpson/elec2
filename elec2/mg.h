@@ -28,15 +28,15 @@ struct mg_obj
 void mg_ini(struct mg_obj *mg, struct ocl_obj *ocl)
 {
     //params
-    mg->nl = 4;
+    mg->nl = 2;
     
     //dims
-    mg->le[0] = 6;
-    mg->le[1] = 6;
-    mg->le[2] = 6;
+    mg->le[0] = 4;
+    mg->le[1] = 4;
+    mg->le[2] = 4;
     
     //scale
-    mg->dx = 0.25f;
+    mg->dx = 1.0f;
     mg->dt = 0.1f;
     
     //allocate
@@ -67,7 +67,7 @@ void mg_ini(struct mg_obj *mg, struct ocl_obj *ocl)
         
         //memory
         lvl->gg = clCreateBuffer(ocl->context, CL_MEM_HOST_READ_ONLY, lvl->nv_tot*sizeof(cl_float4), NULL, &ocl->err);
-        lvl->uu = clCreateBuffer(ocl->context, CL_MEM_HOST_READ_ONLY, lvl->nv_tot*sizeof(cl_float4), NULL, &ocl->err);
+        lvl->uu = clCreateBuffer(ocl->context, CL_MEM_HOST_READ_ONLY, lvl->nv_tot*sizeof(cl_float4), NULL, &ocl->err);  //{u,gate,b,r}
         
         //debug
         printf("i  %d\n", lvl->idx);
@@ -102,27 +102,6 @@ void mg_fin(struct mg_obj *mg, struct ocl_obj *ocl)
 
     return;
 }
-
-
-
-
-//cycle
-void mg_cyc(struct mg_obj *mg, struct ocl_obj *ocl)
-{
-    //levels
-    for(int lvl_idx=0; lvl_idx<mg->nl; lvl_idx++)
-    {
-//        //arguments
-//        ocl->err = clSetKernelArg(lvl->vtx_ini,  0, sizeof(struct msh_obj),    (void*)&lvl->msh);
-//        ocl->err = clSetKernelArg(lvl->vtx_ini,  1, sizeof(cl_mem),            (void*)&lvl->xx);
-//        ocl->err = clSetKernelArg(lvl->vtx_ini,  2, sizeof(cl_mem),            (void*)&lvl->uu);
-    }
-    
-    return;
-}
-
-
-
 
 
 #endif /* mg_h */

@@ -42,10 +42,10 @@ int main(int argc, const char * argv[])
      ==============================
      */
     
-    for(int i=0; i<mg.nl; i++)
+    for(int l=0; l<mg.nl; l++)
     {
         //obj
-        struct lvl_obj *lvl = &mg.lvls[i];
+        struct lvl_obj *lvl = &mg.lvls[l];
         
         //args
         ocl.err = clSetKernelArg(ocl.vtx_ini,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
@@ -56,7 +56,7 @@ int main(int argc, const char * argv[])
         ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_ini, 3, NULL, (size_t*)&lvl->nv, NULL, 0, NULL, NULL);
         
         //write
-        wrt_vtk(lvl, &ocl, 0);
+//        wrt_vtk(lvl, &ocl, 0);
     }
     
     /*
@@ -66,161 +66,123 @@ int main(int argc, const char * argv[])
      */
     
     
-    /*
+
+    int nc = 1;    //cycles
+    int nj = 1;    //jacobi iterations
+    int nf = 100;   //frames
     
-    int nc = 1;     //cycles
-    int nj = 10;    //jacobi iterations
-    
-    //cycle
-    for(int cyc_idx=0; cyc_idx<nc; cyc_idx++)
+    //frames
+    for(int f=0; f<nf; f++)
     {
-        //top
-        struct lvl_obj *lvl = &mg.lvls[0];
-
-        //dims
-//        size_t nv[3] = {lvl->msh.nv.x, lvl->msh.nv.y, lvl->msh.nv.z};
-        size_t iv[3] = {lvl->msh.nv.x-2, lvl->msh.nv.y-2, lvl->msh.nv.z-2};
-        size_t ne[3] = {lvl->msh.ne.x, lvl->msh.ne.y, lvl->msh.ne.z};
+        printf("%d\n", f);
         
-        //jacobi iter
-        for(int j=0; j<nj; j++)
+        //write
+        wrt_vtk(&mg.lvls[0], &ocl, f);
+        
+        //cycle
+        for(int c=0; c<nc; c++)
         {
-            //solve
-            ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl->vtx_res, 3, NULL, iv, NULL, 0, NULL, NULL);
-            ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl->vtx_jac, 3, NULL, iv, NULL, 0, NULL, NULL);
-        }
-        
-        //residual
-        ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl->vtx_res, 3, NULL, iv, NULL, 0, NULL, NULL);
-        ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl->ele_res, 3, NULL, ne, NULL, 0, NULL, NULL);
-        float r = red_sum(lvl->msh.ne_tot, &lvl->ee, &red, &ocl);
-        
-        //error
-        ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl->ele_err, 3, NULL, ne, NULL, 0, NULL, NULL);
-        float e = red_sum(lvl->msh.ne_tot, &lvl->ee, &red, &ocl);
-        
-
-        printf("top %2d %3d %e %e\n", 0, lvl->msh.ne.x, sqrtf(r), sqrtf(e));
-        
-        //descend
-        for(int lvl_idx=1; lvl_idx<mg.nl; lvl_idx++)
-        {
-            //level
-            struct lvl_obj *lvl = &mg.lvls[lvl_idx];
-
-            //dims
-            size_t nv[3] = {lvl->msh.nv.x, lvl->msh.nv.y, lvl->msh.nv.z};
-            size_t iv[3] = {lvl->msh.nv.x-2, lvl->msh.nv.y-2, lvl->msh.nv.z-2};
-//            size_t ne[3] = {lvl->msh.ne.x, lvl->msh.ne.y, lvl->msh.ne.z};
+            //top
+            struct lvl_obj *lvl = &mg.lvls[0];
             
-            //project
-            ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl->vtx_prj, 3, NULL, nv, NULL, 0, NULL, NULL);
-            ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl->vtx_rst, 3, NULL, nv, NULL, 0, NULL, NULL);
-
-            //jacobi iter
+            //args
+            ocl.err = clSetKernelArg(ocl.vtx_jac,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
+            ocl.err = clSetKernelArg(ocl.vtx_jac,  1, sizeof(cl_mem),           (void*)&lvl->uu);
+            
+            //args
+            ocl.err = clSetKernelArg(ocl.vtx_res,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
+            ocl.err = clSetKernelArg(ocl.vtx_res,  1, sizeof(cl_mem),           (void*)&lvl->uu);
+            
+            //jacobi
             for(int j=0; j<nj; j++)
             {
-                //solve
-                ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl->vtx_res, 3, NULL, iv, NULL, 0, NULL, NULL);
-                ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl->vtx_jac, 3, NULL, iv, NULL, 0, NULL, NULL);
+                ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_jac, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
             }
             
             //residual
-            ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl->vtx_res, 3, NULL, iv, NULL, 0, NULL, NULL);
+            ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_res, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
             
-//            ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl->ele_res, 3, NULL, ne, NULL, 0, NULL, NULL);
-//            float r = red_sum(lvl->msh.ne_tot, &lvl->ee, &red, &ocl);
-//
-//            //error
-//            ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl->ele_err, 3, NULL, ne, NULL, 0, NULL, NULL);
-//            float e = red_sum(lvl->msh.ne_tot, &lvl->ee, &red, &ocl);
             
-//            printf("dsc %2d %3d %e %e\n", lvl_idx, lvl->msh.ne.x, sqrtf(r), sqrtf(e));
-            
-        } //dsc
-        
-        
-        //ascend
-        for(int lvl_idx=(mg.nl-2); lvl_idx>=0; lvl_idx--)
-        {
-            //level
-            struct lvl_obj *lvl = &mg.lvls[lvl_idx];
-            
-            //dims
-            size_t nv[3] = {lvl->msh.nv.x, lvl->msh.nv.y, lvl->msh.nv.z};
-            size_t iv[3] = {lvl->msh.nv.x-2, lvl->msh.nv.y-2, lvl->msh.nv.z-2};
-//            size_t ne[3] = {lvl->msh.ne.x, lvl->msh.ne.y, lvl->msh.ne.z};
-            
-            //interp
-            ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl->vtx_itp, 3, NULL, nv, NULL, 0, NULL, NULL);
-            
-            //jacobi iter
-            for(int j=0; j<nj; j++)
+            //descend
+            for(int l=1; l<mg.nl; l++)
             {
-                //solve
-                ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl->vtx_res, 3, NULL, iv, NULL, 0, NULL, NULL);
-                ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl->vtx_jac, 3, NULL, iv, NULL, 0, NULL, NULL);
-            }
+                //level
+                struct lvl_obj *lvl = &mg.lvls[l];
+                
+                //args
+                ocl.err = clSetKernelArg(ocl.vtx_prj,  0, sizeof(struct msh_obj),   (void*)&mg.lvls[l+1].msh);
+                ocl.err = clSetKernelArg(ocl.vtx_prj,  1, sizeof(cl_mem),           (void*)&mg.lvls[l+1].uu);
+                ocl.err = clSetKernelArg(ocl.vtx_prj,  2, sizeof(cl_mem),           (void*)&lvl->uu);
+                
+                //args
+                ocl.err = clSetKernelArg(ocl.vtx_rst,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
+                ocl.err = clSetKernelArg(ocl.vtx_rst,  1, sizeof(cl_mem),           (void*)&lvl->uu);
+                
+                //args
+                ocl.err = clSetKernelArg(ocl.vtx_jac,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
+                ocl.err = clSetKernelArg(ocl.vtx_jac,  1, sizeof(cl_mem),           (void*)&lvl->uu);
+                
+                //args
+                ocl.err = clSetKernelArg(ocl.vtx_res,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
+                ocl.err = clSetKernelArg(ocl.vtx_res,  1, sizeof(cl_mem),           (void*)&lvl->uu);
+
+                
+                //project
+                ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_prj, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
+                ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_rst, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
+                
+                //jacobi
+                for(int j=0; j<nj; j++)
+                {
+                    ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_jac, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
+                }
+                
+                //residual
+                ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_res, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
+                
+            } //dsc
             
-            //residual
-            ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl->vtx_res, 3, NULL, iv, NULL, 0, NULL, NULL);
-            
-            
-//            ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl->ele_res, 3, NULL, ne, NULL, 0, NULL, NULL);
-//            float r = red_sum(lvl->msh.ne_tot, &lvl->ee, &red, &ocl);
-//
-//            //error
-//            ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl->ele_err, 3, NULL, ne, NULL, 0, NULL, NULL);
-//            float e = red_sum(lvl->msh.ne_tot, &lvl->ee, &red, &ocl);
-            
-//            printf("asc %2d %3d %e %e\n", lvl_idx, lvl->msh.ne.x, sqrtf(r), sqrtf(e));
-            
-        } //asc
+
+             //ascend
+             for(int l=(mg.nl-2); l>=0; l--)
+             {
+                 //level
+                 struct lvl_obj *lvl = &mg.lvls[l];
+                 
+                 //args
+                 ocl.err = clSetKernelArg(ocl.vtx_itp,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
+                 ocl.err = clSetKernelArg(ocl.vtx_itp,  1, sizeof(cl_mem),           (void*)&mg.lvls[l+1].uu);
+                 ocl.err = clSetKernelArg(ocl.vtx_itp,  2, sizeof(cl_mem),           (void*)&lvl->uu);
+                 
+                 //args
+                 ocl.err = clSetKernelArg(ocl.vtx_rst,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
+                 ocl.err = clSetKernelArg(ocl.vtx_rst,  1, sizeof(cl_mem),           (void*)&lvl->uu);
+                 
+                 //args
+                 ocl.err = clSetKernelArg(ocl.vtx_jac,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
+                 ocl.err = clSetKernelArg(ocl.vtx_jac,  1, sizeof(cl_mem),           (void*)&lvl->uu);
+                 
+                 //args
+                 ocl.err = clSetKernelArg(ocl.vtx_res,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
+                 ocl.err = clSetKernelArg(ocl.vtx_res,  1, sizeof(cl_mem),           (void*)&lvl->uu);
+                 
+                 //interp
+                 ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_itp, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
+                 
+                 //jacobi iter
+                 for(int j=0; j<nj; j++)
+                 {
+                     ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_jac, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
+                 }
+                 
+                 //residual
+                 ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_res, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
+                 
+             }//l
+             
+        } //c
         
-    } //cyc_idx
-    
-     
-     */
-     
-    
-    /*
-     ==============================
-     solve
-     ==============================
-     */
-    
-    //init
-//    ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl.vtx_ini, 3, NULL, nv, NULL, 0, NULL, NULL);
-    
-//    //time
-//    for(int t=0; t<100; t++)
-//    {
-//        printf("%02d\n",t);
-//        
-//        //write vtk
-//        wrt_vtk(&lvl, &ocl, t);
-//
-//        //elec iter
-//        for(int k=0; k<100; k++)
-//        {
-//            //calc
-//            ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl.vtx_ion, 3, NULL, nv, NULL, 0, NULL, NULL);
-//
-//            //heart jacobi
-//            for(int l=0; l<10; l++)
-//            {
-//                ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl.vtx_hrt, 3, NULL, nv, NULL, 0, NULL, NULL);
-//            }//l
-//            
-//            //torso jacobi
-//            for(int l=0; l<100; l++)
-//            {
-//                ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, lvl.vtx_trs, 3, NULL, nv, NULL, 0, NULL, NULL);
-//            }//l
-//            
-//        }//k
-//        
-//    }//t
+    }//t
     
     //clean
     ocl_fin(&ocl);

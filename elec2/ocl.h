@@ -30,6 +30,12 @@ struct ocl_obj
     cl_kernel           vtx_ion;
     cl_kernel           vtx_hrt;
     cl_kernel           vtx_trs;
+    
+    cl_kernel           vtx_rst;
+    cl_kernel           vtx_res;
+    cl_kernel           vtx_jac;
+    cl_kernel           vtx_prj;
+    cl_kernel           vtx_itp;
 };
 
 
@@ -122,6 +128,13 @@ void ocl_ini(struct ocl_obj *ocl)
     ocl->vtx_hrt = clCreateKernel(ocl->program, "vtx_hrt", &ocl->err);
     ocl->vtx_trs = clCreateKernel(ocl->program, "vtx_trs", &ocl->err);
     
+    //mg
+    ocl->vtx_rst = clCreateKernel(ocl->program, "vtx_rst", &ocl->err);
+    ocl->vtx_res = clCreateKernel(ocl->program, "vtx_res", &ocl->err);
+    ocl->vtx_jac = clCreateKernel(ocl->program, "vtx_jac", &ocl->err);
+    ocl->vtx_prj = clCreateKernel(ocl->program, "vtx_prj", &ocl->err);
+    ocl->vtx_itp = clCreateKernel(ocl->program, "vtx_itp", &ocl->err);
+    
 }
 
 
@@ -137,6 +150,12 @@ void ocl_fin(struct ocl_obj *ocl)
     ocl->err = clReleaseKernel(ocl->vtx_ion);
     ocl->err = clReleaseKernel(ocl->vtx_hrt);
     ocl->err = clReleaseKernel(ocl->vtx_trs);
+    
+    ocl->err = clReleaseKernel(ocl->vtx_rst);
+    ocl->err = clReleaseKernel(ocl->vtx_res);
+    ocl->err = clReleaseKernel(ocl->vtx_jac);
+    ocl->err = clReleaseKernel(ocl->vtx_prj);
+    ocl->err = clReleaseKernel(ocl->vtx_itp);
     
     //context
     ocl->err = clReleaseProgram(ocl->program);
