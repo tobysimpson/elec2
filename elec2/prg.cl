@@ -21,7 +21,7 @@ constant float MS_TAU_CLOSE = 100.0f;       //90 endocardium to 130 epi - longer
 
 //conductivity
 constant float MD_SIG_H     = 1.0f;          //conductivity (mS mm^-1) = muA mV^-1 mm^-1
-constant float MD_SIG_T     = 1.0f;
+constant float MD_SIG_T     = 10.0f;
 
 //stencil
 constant int3 off_fac[6]    = {{-1,0,0},{+1,0,0},{0,-1,0},{0,+1,0},{0,0,-1},{0,0,+1}};
@@ -360,11 +360,11 @@ kernel void vtx_res(const  struct msh_obj   msh,
         s += g0*(uu[adj_idx].x - uu[vtx_idx].x);
     }
     
-    int g0 = fn_g0(x)<=0e0f;  //inside torso
-    int g1 = fn_g1(x)>0e0f;  //outside epi
+    int g0 = fn_g0(x)<=0e0f;    //inside torso
+    int g1 = fn_g1(x)>0e0f;     //outside epi
     
     //params
-    float alp = MD_SIG_T*msh.dt/msh.dx2;
+    float alp = MD_SIG_T/msh.dx2;
     
     //laplace Dˆ-1(b-Au), b=0
     uu[vtx_idx].w = (g0*g1)?(-alp*s):0e0f;
@@ -393,16 +393,17 @@ kernel void vtx_jac(const  struct msh_obj   msh,
         float3  adj_x = msh.dx*convert_float3(adj_pos - msh.nv/2);
         
         int     g0 = fn_g0(adj_x)<=0e0f;  //inside torso
-        
+       
+        //zero neuman
         d -= g0;
         s += g0*(uu[adj_idx].x - uu[vtx_idx].x);
     }
     
-    int g0 = fn_g0(x)<=0e0f;  //inside torso
-    int g1 = fn_g1(x)>0e0f;  //outside epi
+    int g0 = fn_g0(x)<=0e0f;    //inside torso
+    int g1 = fn_g1(x)>0e0f;     //outside epi
     
     //params
-//    float alp = MD_SIG_T*msh.dt/msh.dx2;
+//    float alp = MD_SIG_T/msh.dx2;
     
     //laplace Dˆ-1(b-Au), b=0
     uu[vtx_idx].x += (g0*g1)?(-s/d):0e0f;
@@ -423,7 +424,7 @@ kernel void vtx_prj(const  struct msh_obj    msh,   //coarse    (out)
     //injection
     int  vtx_idx1  = fn_idx1(2*vtx_pos, 2*msh.ne+1);
     
-    //store
+    //store r -> b
     u0[vtx_idx0].z = u1[vtx_idx1].w;
 
     return;

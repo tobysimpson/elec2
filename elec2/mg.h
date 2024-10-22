@@ -28,15 +28,15 @@ struct mg_obj
 void mg_ini(struct mg_obj *mg, struct ocl_obj *ocl)
 {
     //params
-    mg->nl = 2;
+    mg->nl = 5;
     
     //dims
-    mg->le[0] = 4;
-    mg->le[1] = 4;
-    mg->le[2] = 4;
+    mg->le[0] = 6;
+    mg->le[1] = 6;
+    mg->le[2] = 6;
     
     //scale
-    mg->dx = 1.0f;
+    mg->dx = 0.25f;
     mg->dt = 0.1f;
     
     //allocate

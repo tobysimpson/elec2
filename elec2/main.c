@@ -64,17 +64,15 @@ int main(int argc, const char * argv[])
      cycle
      ==============================
      */
-    
-    
 
-    int nc = 1;    //cycles
-    int nj = 1;    //jacobi iterations
+    int nc = 10;    //cycles
+    int nj = 10;    //jacobi iterations
     int nf = 100;   //frames
     
     //frames
     for(int f=0; f<nf; f++)
     {
-        printf("%d\n", f);
+        printf("%2d\n", f);
         
         //write
         wrt_vtk(&mg.lvls[0], &ocl, f);
@@ -110,9 +108,9 @@ int main(int argc, const char * argv[])
                 struct lvl_obj *lvl = &mg.lvls[l];
                 
                 //args
-                ocl.err = clSetKernelArg(ocl.vtx_prj,  0, sizeof(struct msh_obj),   (void*)&mg.lvls[l+1].msh);
-                ocl.err = clSetKernelArg(ocl.vtx_prj,  1, sizeof(cl_mem),           (void*)&mg.lvls[l+1].uu);
-                ocl.err = clSetKernelArg(ocl.vtx_prj,  2, sizeof(cl_mem),           (void*)&lvl->uu);
+                ocl.err = clSetKernelArg(ocl.vtx_prj,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
+                ocl.err = clSetKernelArg(ocl.vtx_prj,  1, sizeof(cl_mem),           (void*)&lvl->uu);
+                ocl.err = clSetKernelArg(ocl.vtx_prj,  2, sizeof(cl_mem),           (void*)&mg.lvls[l-1].uu);
                 
                 //args
                 ocl.err = clSetKernelArg(ocl.vtx_rst,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
@@ -185,6 +183,7 @@ int main(int argc, const char * argv[])
     }//t
     
     //clean
+    mg_fin(&mg, &ocl);
     ocl_fin(&ocl);
     
     printf("done.\n");
