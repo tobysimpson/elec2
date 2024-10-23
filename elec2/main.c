@@ -56,7 +56,7 @@ int main(int argc, const char * argv[])
         ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_ini, 3, NULL, (size_t*)&lvl->nv, NULL, 0, NULL, NULL);
         
         //write
-//        wrt_vtk(lvl, &ocl, 0);
+        wrt_vtk(lvl, &ocl, 0);
     }
     
     /*
@@ -66,8 +66,8 @@ int main(int argc, const char * argv[])
      */
 
     int nc = 10;    //cycles
-    int nj = 10;    //jacobi iterations
-    int nf = 100;   //frames
+    int nj = 5;    //jacobi iterations
+    int nf = 0;   //frames
     
     //frames
     for(int f=0; f<nf; f++)
@@ -75,7 +75,7 @@ int main(int argc, const char * argv[])
         printf("%2d\n", f);
         
         //write
-        wrt_vtk(&mg.lvls[0], &ocl, f);
+//        wrt_vtk(&mg.lvls[0], &ocl, f);
         
         //cycle
         for(int c=0; c<nc; c++)

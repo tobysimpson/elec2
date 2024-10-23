@@ -119,10 +119,13 @@ float sdf_cap(float3 p, float3 a, float3 b, float r)
 }
 
 
-//cylinder z-axis (x,c,r,h)
-float sdf_cyl(float3 x, float3 c, float r, float h)
+//cylinder z-axis
+float sdf_cyl(float3 x, float3 r)
 {
-    return max(length(x.xy - c.xy) - r, fabs(x.z - c.z) - h);
+    //ellipse
+    float2 p = r.xy*normalize(x.xy/r.xy);
+    
+    return max(length(x.xy) - length(p), fabs(x.z) - r.z);
 }
 
 
@@ -135,22 +138,21 @@ float sdf_cyl(float3 x, float3 c, float r, float h)
 //torso
 float fn_g0(float3 x)
 {
-    float3 c = (float3){0.0f, 0.0f, 0.0f};
-    float3 r = (float3){6.0f, 6.0f, 6.0f};
+    float3 r = (float3){256.0f, 128.0f, 128.0f};
     
-    return sdf_cub(x, c, r);
+    return sdf_cyl(x, r);
 }
 
 
 //epicardium
 float fn_g1(float3 x)
 {
-    float3 c = (float3){2.0f, 0.0f, 2.0f};
-    float3 r = (float3){2.0f, 2.0f, 2.0f};
+    float3 c = (float3){0.0f, 0.0f, 0.0f};
+    float3 r = (float3){40.0f, 30.0f, 60.0f};
     
     return sdf_cub(x, c, r);
     
-//    return sdf_cap(x, (float3){0e0f, 0e0f, -2e0f}, (float3){0e0f, 0e0f, +2e0f}, 6.0f);
+    return sdf_cap(x, (float3){0e0f, 0e0f, -2e0f}, (float3){0e0f, 0e0f, +2e0f}, 6.0f);
 }
 
 
@@ -165,11 +167,11 @@ float fn_g2(float3 x)
     s1 = max(s1, -cap1);
     
     //insulate a/v
-    float cyl1 = sdf_cyl(x, (float3){0e0f, 0e0f, 1e0f}, 7e0f, 1e0f); //horiz
+    float cyl1 = sdf_cyl(x, (float3){7e0f, 7e0f, 1e0f});
     s1 = max(s1, -cyl1);
     
     //add purk
-    float cyl2 = sdf_cyl(x, (float3){0e0f, 0e0f, 0e0f}, 1e0f, 7e0f);
+    float cyl2 = sdf_cyl(x, (float3){1e0f, 1e0f, 7e0f});
     s1 = min(s1,cyl2);
     
     return s1;

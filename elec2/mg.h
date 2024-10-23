@@ -31,13 +31,13 @@ void mg_ini(struct mg_obj *mg, struct ocl_obj *ocl)
     mg->nl = 5;
     
     //dims
-    mg->le[0] = 6;
-    mg->le[1] = 6;
-    mg->le[2] = 6;
+    mg->le[0] = 8;
+    mg->le[1] = 7;
+    mg->le[2] = 7;
     
     //scale
-    mg->dx = 0.25f;
-    mg->dt = 0.1f;
+    mg->dx = 2.0f;  //mm
+    mg->dt = 1.0f;  //ms
     
     //allocate
     mg->lvls = malloc(mg->nl*sizeof(struct lvl_obj));
@@ -76,7 +76,7 @@ void mg_ini(struct mg_obj *mg, struct ocl_obj *ocl)
         printf("ne %d %d %d\n", lvl->msh.ne.x, lvl->msh.ne.y, lvl->msh.ne.z);
 //        printf("nv %d %d %d\n", lvl->msh.nv.x, lvl->msh.nv.y, lvl->msh.nv.z);
 //        printf("nv %zu %zu %zu\n", lvl->nv[0], lvl->nv[1], lvl->nv[2]);
-//        printf("nv_tot  %zu\n", lvl->nv_tot);
+        printf("nv_tot  %zu\n", lvl->nv_tot);
 
     }
     
