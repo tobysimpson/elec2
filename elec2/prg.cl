@@ -20,8 +20,8 @@ constant float MS_TAU_OPEN  = 120.0f;       //milliseconds
 constant float MS_TAU_CLOSE = 100.0f;       //90 endocardium to 130 epi - longer
 
 //conductivity
-constant float MD_SIG_H     = 1.0f;          //conductivity (mS mm^-1) = muA mV^-1 mm^-1
-constant float MD_SIG_T     = 10.0f;
+constant float MD_SIG_H     = 1e-0f;          //conductivity (mS mm^-1) = muA mV^-1 mm^-1
+constant float MD_SIG_T     = 1e-0f;
 
 //stencil
 constant int3 off_fac[6]    = {{-1,0,0},{+1,0,0},{0,-1,0},{0,+1,0},{0,0,-1},{0,0,+1}};
@@ -83,6 +83,12 @@ int fn_bnd2(int3 pos, int3 dim)
     return (pos.x==0)||(pos.y==0)||(pos.z==0)||(pos.x==dim.x-1)||(pos.y==dim.y-1)||(pos.z==dim.z-1);
 }
 
+//coordinate
+float3 fn_x(int3 pos, const struct msh_obj *msh)
+{
+    return msh->dx*convert_float3(pos - msh->nv/2);
+}
+
 
 /*
  ==============================
@@ -138,21 +144,20 @@ float sdf_cyl(float3 x, float3 r)
 //torso
 float fn_g0(float3 x)
 {
-    float3 r = (float3){256.0f, 128.0f, 128.0f};
+    float3 c = (float3){  0.0f,   0.0f,   0.0f};
+    float3 r = (float3){100.0f, 100.0f, 100.0f};
     
-    return sdf_cyl(x, r);
+    return sdf_cub(x, c, r);
 }
 
 
 //epicardium
 float fn_g1(float3 x)
 {
-    float3 c = (float3){0.0f, 0.0f, 0.0f};
-    float3 r = (float3){40.0f, 30.0f, 60.0f};
+    float3 c = (float3){ 0.0f,  0.0f,  0.0f};
+    float3 r = (float3){50.0f, 50.0f, 50.0f};
     
     return sdf_cub(x, c, r);
-    
-    return sdf_cap(x, (float3){0e0f, 0e0f, -2e0f}, (float3){0e0f, 0e0f, +2e0f}, 6.0f);
 }
 
 
@@ -163,15 +168,15 @@ float fn_g2(float3 x)
     float s1 = fn_g1(x);
     
     //subtract endocardium for void
-    float cap1 = sdf_cap(x, (float3){0e0f, 0e0f, -2e0f}, (float3){0e0f, 0e0f, +2e0f}, 4.0f);    //endo
+    float cap1 = sdf_cap(x, (float3){0e0f, 0e0f, -20e0f}, (float3){0e0f, 0e0f, +20e0f}, 40.0f);    //endo
     s1 = max(s1, -cap1);
     
     //insulate a/v
-    float cyl1 = sdf_cyl(x, (float3){7e0f, 7e0f, 1e0f});
+    float cyl1 = sdf_cyl(x, (float3){70e0f, 70e0f, 10e0f});
     s1 = max(s1, -cyl1);
     
     //add purk
-    float cyl2 = sdf_cyl(x, (float3){1e0f, 1e0f, 7e0f});
+    float cyl2 = sdf_cyl(x, (float3){10e0f, 10e0f, 70e0f});
     s1 = min(s1,cyl2);
     
     return s1;
@@ -181,10 +186,10 @@ float fn_g2(float3 x)
 //stimulus
 float fn_g3(float3 x)
 {
-    float3 c = (float3){-4e0f, 0e0f, +5e0f};
-    float  r = 1.0f;
+    float3 c = (float3){0.0f, 0.0f, 0.0f};
+    float3 r = (float3){0.1f, 0.1f, 0.1f};
     
-    return sdf_sph(x, c, r);
+    return sdf_cub(x, c, r);
 }
 
 
@@ -202,16 +207,16 @@ kernel void vtx_ini(const  struct msh_obj  msh,
     int3 vtx_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
     int  vtx_idx  = fn_idx1(vtx_pos, msh.nv);
 
-    float3 x = msh.dx*convert_float3(vtx_pos - msh.nv/2);
+    float3 x = fn_x(vtx_pos, &msh);
 
     gg[vtx_idx] = (float4){fn_g0(x), fn_g1(x), fn_g2(x), fn_g3(x)};
-    uu[vtx_idx] = (float4){fn_g1(x)<=0e0f, 1.0f, 0e0f, 0e0f}; //stim
+    uu[vtx_idx] = (float4){fn_g1(x)<=0e0f, 0.0f, 0e0f, 1.0f}; //[u,b,r,gate]
     
     return;
 }
 
 
-//mitchell-schaffer
+//mitchell-schaffer [u,b,r,gate]
 kernel void vtx_ion(const  struct msh_obj  msh,
                     global float4          *uu)
 {
@@ -224,14 +229,14 @@ kernel void vtx_ion(const  struct msh_obj  msh,
     float2 du = 0.0f;
 
     //mitchell-schaffer
-    du.x = (u.y*u.x*u.x*(1.0f-u.x)/MS_TAU_IN) - (u.x/MS_TAU_OUT);               //ms dimensionless J_in, J_out, J_stim
-    du.y = (u.x<MS_V_GATE)?((1.0f - u.y)/MS_TAU_OPEN):(-u.y)/MS_TAU_CLOSE;      //gating variable
+    du.x = (u.w*u.x*u.x*(1.0f-u.x)/MS_TAU_IN) - (u.x/MS_TAU_OUT);               //ms dimensionless J_in, J_out, J_stim
+    du.y = (u.x<MS_V_GATE)?((1.0f - u.w)/MS_TAU_OPEN):(-u.w)/MS_TAU_CLOSE;      //gating variable
 
     //update
-    u.xy += (fn_g1(x)<= 0e0f)*msh.dt*du; //heart
+    u.xw += (fn_g1(x)<= 0e0f)*msh.dt*du; //heart
 
     //rhs for ie
-    u.z = u.x;
+    u.y = u.x;
 
     //store
     uu[vtx_idx] = u;
@@ -344,32 +349,46 @@ kernel void vtx_res(const  struct msh_obj   msh,
     int3 vtx_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
     int  vtx_idx  = fn_idx1(vtx_pos, msh.nv);
     
-    float3 x = msh.dx*convert_float3(vtx_pos - msh.nv/2);
+    float3 x = fn_x(vtx_pos, &msh);
 
-    float  s = 0.0f;            //sum
-    float  d = 0.0f;            //diag
-    
-    //stencil
-    for(int k=0; k<6; k++)
+    //geom - torso only
+    if((fn_g0(x)<=0.0f)&&(fn_g1(x)>0.0f))   //inside torso outside epi
     {
-        int3    adj_pos = vtx_pos + off_fac[k];
-        int     adj_idx = fn_idx1(adj_pos, msh.nv);
-        float3  adj_x = msh.dx*convert_float3(adj_pos - msh.nv/2);
+        float4 u = uu[vtx_idx];     //[u,b,r]
+        float  s = 0.0f;            //sum
+        float  d = 0.0f;            //diag
         
-        int     g0 = fn_g0(adj_x)<=0e0f;  //inside torso
+        //stencil
+        for(int k=0; k<6; k++)
+        {
+            int3    adj_pos = vtx_pos + off_fac[k];
+            int     adj_idx = fn_idx1(adj_pos, msh.nv);
+            float3  adj_x   = fn_x(adj_pos, &msh);
+            
+//            //zero neumann
+//            int g0 = fn_g0(adj_x)<=0e0f;
+//            d -= g0;
+//            s += g0*(uu[adj_idx].x - uu[vtx_idx].x);
+            
+            //zero dirichlet
+            int g0 = fn_g0(adj_x)<=0e0f;
+            d -= 1e0f;
+            s += (g0*uu[adj_idx].x) - uu[vtx_idx].x;
+        }
         
-        d -= g0;
-        s += g0*(uu[adj_idx].x - uu[vtx_idx].x);
-    }
-    
-    int g0 = fn_g0(x)<=0e0f;    //inside torso
-    int g1 = fn_g1(x)>0e0f;     //outside epi
-    
-    //params
-    float alp = MD_SIG_T/msh.dx2;
-    
-    //laplace Dˆ-1(b-Au), b=0
-    uu[vtx_idx].w = (g0*g1)?(-alp*s):0e0f;
+        //params
+        float alp = MD_SIG_T/msh.dx2;
+        
+        //residual r = b - Au
+        u.z = u.y - alp*s;
+        
+        //jacobi x += Dˆ1(r)
+        u.x += u.z/(alp*d);
+        
+        //store
+//        uu[vtx_idx] = u;
+            
+    } //geom
     
     return;
 }
@@ -382,33 +401,46 @@ kernel void vtx_jac(const  struct msh_obj   msh,
     int3 vtx_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
     int  vtx_idx  = fn_idx1(vtx_pos, msh.nv);
     
-    float3 x = msh.dx*convert_float3(vtx_pos - msh.nv/2);
+    float3 x = fn_x(vtx_pos, &msh);
 
-    float  s = 0.0f;            //sum
-    float  d = 0.0f;            //diag
-    
-    //stencil
-    for(int k=0; k<6; k++)
+    //geom - torso only
+    if((fn_g0(x)<=0.0f)&&(fn_g1(x)>0.0f))   //inside torso outside epi
     {
-        int3    adj_pos = vtx_pos + off_fac[k];
-        int     adj_idx = fn_idx1(adj_pos, msh.nv);
-        float3  adj_x = msh.dx*convert_float3(adj_pos - msh.nv/2);
+        float4 u = uu[vtx_idx];     //[u,b,r]
+        float  s = 0.0f;            //sum
+        float  d = 0.0f;            //diag
         
-        int     g0 = fn_g0(adj_x)<=0e0f;  //inside torso
-       
-        //zero neuman
-        d -= g0;
-        s += g0*(uu[adj_idx].x - uu[vtx_idx].x);
-    }
-    
-    int g0 = fn_g0(x)<=0e0f;    //inside torso
-    int g1 = fn_g1(x)>0e0f;     //outside epi
-    
-    //params
-//    float alp = MD_SIG_T/msh.dx2;
-    
-    //laplace Dˆ-1(b-Au), b=0
-    uu[vtx_idx].x += (g0*g1)?(-s/d):0e0f;
+        //stencil
+        for(int k=0; k<6; k++)
+        {
+            int3    adj_pos = vtx_pos + off_fac[k];
+            int     adj_idx = fn_idx1(adj_pos, msh.nv);
+            float3  adj_x   = fn_x(adj_pos, &msh);
+            
+            //zero neumann
+            int g0 = fn_g0(adj_x)<=0e0f;
+            d -= g0;
+            s += g0*(uu[adj_idx].x - uu[vtx_idx].x);
+            
+//            //zero dirichlet
+//            int g0 = fn_g0(adj_x)<=0e0f;
+//            d -= 1e0f;
+//            s += (g0*uu[adj_idx].x) - uu[vtx_idx].x;
+        }
+        
+        //params
+        float alp = MD_SIG_T/msh.dx2;
+        
+        //residual r = b - Au
+        u.z = u.y - alp*s;
+        
+        //jacobi x += Dˆ1(r)
+        u.x += u.z/(alp*d);
+        
+        //store
+        uu[vtx_idx] = u;
+            
+    } //geom
     
     return;
 }
@@ -427,7 +459,7 @@ kernel void vtx_prj(const  struct msh_obj    msh,   //coarse    (out)
     int  vtx_idx1  = fn_idx1(2*vtx_pos, 2*msh.ne+1);
     
     //store r -> b
-    u0[vtx_idx0].z = u1[vtx_idx1].w;
+    u0[vtx_idx0].z = u1[vtx_idx1].y;
 
     return;
 }

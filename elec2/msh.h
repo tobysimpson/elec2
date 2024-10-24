@@ -17,9 +17,7 @@ struct msh_obj
     cl_int3     ne;
     cl_int3     nv;
     
-    float       dx2; //dxˆ2
+    float       dx2;
 };
-
-
 
 #endif /* msh_h */

@@ -28,16 +28,16 @@ struct mg_obj
 void mg_ini(struct mg_obj *mg, struct ocl_obj *ocl)
 {
     //params
-    mg->nl = 5;
+    mg->nl = 4;
     
     //dims
-    mg->le[0] = 8;
-    mg->le[1] = 7;
-    mg->le[2] = 7;
+    mg->le[0] = 4;
+    mg->le[1] = 4;
+    mg->le[2] = 4;
     
     //scale
-    mg->dx = 2.0f;  //mm
-    mg->dt = 1.0f;  //ms
+    mg->dx = 200.0f/pow(2, mg->le[0]);      //mm
+    mg->dt = 1.0f;                          //ms
     
     //allocate
     mg->lvls = malloc(mg->nl*sizeof(struct lvl_obj));
@@ -67,7 +67,7 @@ void mg_ini(struct mg_obj *mg, struct ocl_obj *ocl)
         
         //memory
         lvl->gg = clCreateBuffer(ocl->context, CL_MEM_HOST_READ_ONLY, lvl->nv_tot*sizeof(cl_float4), NULL, &ocl->err);
-        lvl->uu = clCreateBuffer(ocl->context, CL_MEM_HOST_READ_ONLY, lvl->nv_tot*sizeof(cl_float4), NULL, &ocl->err);  //{u,gate,b,r}
+        lvl->uu = clCreateBuffer(ocl->context, CL_MEM_HOST_READ_ONLY, lvl->nv_tot*sizeof(cl_float4), NULL, &ocl->err);
         
         //debug
         printf("i  %d\n", lvl->idx);
