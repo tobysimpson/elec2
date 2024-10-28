@@ -157,7 +157,7 @@ float fn_g1(float3 x)
     float3 c = (float3){ 0.0f,  0.0f,  0.0f};
     float3 r = (float3){50.0f, 50.0f, 50.0f};
     
-    return sdf_cub(x, c, r);
+    return sdf_sph(x, c, r.x);
 }
 
 
@@ -210,7 +210,7 @@ kernel void vtx_ini(const  struct msh_obj  msh,
     float3 x = fn_x(vtx_pos, &msh);
 
     gg[vtx_idx] = (float4){fn_g0(x), fn_g1(x), fn_g2(x), fn_g3(x)};
-    uu[vtx_idx] = (float4){fn_g1(x)<=0e0f, 0.0f, 0e0f, 1.0f}; //[u,b,r,gate]
+    uu[vtx_idx] = (float4){fn_g1(x), 0.0f, 0e0f, 1.0f}; //[u,b,r,gate]
     
     return;
 }
@@ -459,7 +459,7 @@ kernel void vtx_prj(const  struct msh_obj    msh,   //coarse    (out)
     int  vtx_idx1  = fn_idx1(2*vtx_pos, 2*msh.ne+1);
     
     //store r -> b
-    u0[vtx_idx0].z = u1[vtx_idx1].y;
+    u0[vtx_idx0].x = u1[vtx_idx1].x;
 
     return;
 }
@@ -492,7 +492,7 @@ kernel void vtx_itp(const  struct msh_obj    msh,   //fine      (out)
     s += u0[fn_idx1((int3){pos0.x, pos1.y, pos1.z}, dim)].x;
     s += u0[fn_idx1((int3){pos1.x, pos1.y, pos1.z}, dim)].x;
     
-    u1[vtx_idx].x += s/8e0f;
+    u1[vtx_idx].x = s/8e0f;
     
     return;
 }

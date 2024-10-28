@@ -51,13 +51,22 @@ int main(int argc, const char * argv[])
         ocl.err = clSetKernelArg(ocl.vtx_ini,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
         ocl.err = clSetKernelArg(ocl.vtx_ini,  1, sizeof(cl_mem),           (void*)&lvl->gg);
         ocl.err = clSetKernelArg(ocl.vtx_ini,  2, sizeof(cl_mem),           (void*)&lvl->uu);
-           
-        //init
-        ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_ini, 3, NULL, (size_t*)&lvl->nv, NULL, 0, NULL, NULL);
         
-        //write
-        wrt_vtk(lvl, &ocl, 0);
-    }
+        //args
+        ocl.err = clSetKernelArg(ocl.vtx_rst,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
+        ocl.err = clSetKernelArg(ocl.vtx_rst,  1, sizeof(cl_mem),           (void*)&lvl->uu);
+        
+        //reset
+        ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_rst, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
+           
+        //debug
+        if(l==0)
+        {
+            //init
+            ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_ini, 3, NULL, (size_t*)&lvl->nv, NULL, 0, NULL, NULL);
+        }
+        
+    }//l
     
     /*
      ==============================
@@ -65,41 +74,41 @@ int main(int argc, const char * argv[])
      ==============================
      */
 
-    int nc = 10;    //cycles
-    int nj = 10;    //jacobi iterations
-    int nf = 100;   //frames
+//    int nc = 1;    //cycles
+//    int nj = 1;    //jacobi iterations
+//    int nf = 100;   //frames
     
     //frames
-    for(int f=0; f<nf; f++)
-    {
-        printf("%2d\n", f);
-        
-        //write
-        wrt_vtk(&mg.lvls[0], &ocl, f);
+//    for(int f=0; f<nf; f++)
+//    {
+//        printf("%2d\n", f);
         
         //cycle
-        for(int c=0; c<nc; c++)
-        {
+//        for(int c=0; c<nc; c++)
+//        {
             //top
-            struct lvl_obj *lvl = &mg.lvls[0];
+//            struct lvl_obj *lvl = &mg.lvls[0];
             
             //args
-            ocl.err = clSetKernelArg(ocl.vtx_jac,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
-            ocl.err = clSetKernelArg(ocl.vtx_jac,  1, sizeof(cl_mem),           (void*)&lvl->uu);
-            
-            //args
-            ocl.err = clSetKernelArg(ocl.vtx_res,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
-            ocl.err = clSetKernelArg(ocl.vtx_res,  1, sizeof(cl_mem),           (void*)&lvl->uu);
+//            ocl.err = clSetKernelArg(ocl.vtx_jac,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
+//            ocl.err = clSetKernelArg(ocl.vtx_jac,  1, sizeof(cl_mem),           (void*)&lvl->uu);
+//            
+//            //args
+//            ocl.err = clSetKernelArg(ocl.vtx_res,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
+//            ocl.err = clSetKernelArg(ocl.vtx_res,  1, sizeof(cl_mem),           (void*)&lvl->uu);
             
             //jacobi
-            for(int j=0; j<nj; j++)
-            {
-                ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_jac, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
-            }
+//            for(int j=0; j<nj; j++)
+//            {
+//                ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_jac, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
+//            }
             
             //residual
-            ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_res, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
+//            ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_res, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
             
+            
+            
+    
             //descend
             for(int l=1; l<mg.nl; l++)
             {
@@ -123,23 +132,25 @@ int main(int argc, const char * argv[])
                 ocl.err = clSetKernelArg(ocl.vtx_res,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
                 ocl.err = clSetKernelArg(ocl.vtx_res,  1, sizeof(cl_mem),           (void*)&lvl->uu);
 
-                
                 //project
                 ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_prj, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
-                ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_rst, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
+             
+                //reset
+//                ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_rst, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
                 
                 //jacobi
-                for(int j=0; j<nj; j++)
-                {
-                    ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_jac, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
-                }
+//                for(int j=0; j<nj; j++)
+//                {
+//                    ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_jac, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
+//                }
                 
                 //residual
-                ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_res, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
+//                ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_res, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
                 
-            } //dsc
+            } //l
             
-
+    
+             
              //ascend
              for(int l=(mg.nl-2); l>=0; l--)
              {
@@ -152,10 +163,6 @@ int main(int argc, const char * argv[])
                  ocl.err = clSetKernelArg(ocl.vtx_itp,  2, sizeof(cl_mem),           (void*)&lvl->uu);
                  
                  //args
-                 ocl.err = clSetKernelArg(ocl.vtx_rst,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
-                 ocl.err = clSetKernelArg(ocl.vtx_rst,  1, sizeof(cl_mem),           (void*)&lvl->uu);
-                 
-                 //args
                  ocl.err = clSetKernelArg(ocl.vtx_jac,  0, sizeof(struct msh_obj),   (void*)&lvl->msh);
                  ocl.err = clSetKernelArg(ocl.vtx_jac,  1, sizeof(cl_mem),           (void*)&lvl->uu);
                  
@@ -164,22 +171,31 @@ int main(int argc, const char * argv[])
                  ocl.err = clSetKernelArg(ocl.vtx_res,  1, sizeof(cl_mem),           (void*)&lvl->uu);
                  
                  //interp
-                 ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_itp, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
+//                 ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_itp, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
                  
-                 //jacobi iter
-                 for(int j=0; j<nj; j++)
-                 {
-                     ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_jac, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
-                 }
-                 
-                 //residual
-                 ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_res, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
-                 
+//                 //jacobi iter
+//                 for(int j=0; j<nj; j++)
+//                 {
+//                     ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_jac, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
+//                 }
+//                 
+//                 //residual
+//                 ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ocl.vtx_res, 3, NULL, lvl->nv, NULL, 0, NULL, NULL);
+                
              }//l
+    
+    
              
-        } //c
+//        } //c
+    
+    
+    for(int l=0; l<mg.nl; l++)
+    {
+        //write
+        wrt_vtk(&mg.lvls[l], &ocl, 0);
+    }
         
-    }//t
+//    }//f
     
     //clean
     mg_fin(&mg, &ocl);
