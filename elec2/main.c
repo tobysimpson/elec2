@@ -11,7 +11,7 @@
 #include "io.h"
 
 
-//does multigrid implicit euler and mitchell schaffer elec, no ecg yet
+//does with mg explicit euler and ms elec, no ecg yet
 
 //doing mg as an include
 int main(int argc, const char * argv[])
