@@ -22,22 +22,9 @@
 		DA17ABA82CC65EAB00CFAD5C /* elec2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = elec2; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		DA17ABBB2CC65F3300CFAD5C /* Exceptions for "elec2" folder in "Copy Files" phase from "elec2" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			buildPhase = DA17ABA62CC65EAB00CFAD5C /* CopyFiles */;
-			membershipExceptions = (
-				prg.cl,
-			);
-		};
-/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		DA17ABAA2CC65EAB00CFAD5C /* elec2 */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				DA17ABBB2CC65F3300CFAD5C /* Exceptions for "elec2" folder in "Copy Files" phase from "elec2" target */,
-			);
 			path = elec2;
 			sourceTree = "<group>";
 		};
