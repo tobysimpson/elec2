@@ -22,9 +22,47 @@
 		DA17ABA82CC65EAB00CFAD5C /* elec2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = elec2; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		DA4CFAF02D39047300EFDCF6 /* Exceptions for "elec2" folder in "elec2" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				device/geo.cl,
+				device/ion.cl,
+				device/mg.cl,
+				device/msh.cl,
+				device/ops1.cl,
+				device/ops2.cl,
+				device/prg.cl,
+				device/sdf.cl,
+				device/utl.cl,
+			);
+			target = DA17ABA72CC65EAB00CFAD5C /* elec2 */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		DA4CFAF82D39051100EFDCF6 /* Exceptions for "elec2" folder in "Copy Files" phase from "elec2" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = DA17ABA62CC65EAB00CFAD5C /* CopyFiles */;
+			membershipExceptions = (
+				device/geo.cl,
+				device/ion.cl,
+				device/mg.cl,
+				device/msh.cl,
+				device/prg.cl,
+				device/sdf.cl,
+				device/utl.cl,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		DA17ABAA2CC65EAB00CFAD5C /* elec2 */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				DA4CFAF02D39047300EFDCF6 /* Exceptions for "elec2" folder in "elec2" target */,
+				DA4CFAF82D39051100EFDCF6 /* Exceptions for "elec2" folder in "Copy Files" phase from "elec2" target */,
+			);
 			path = elec2;
 			sourceTree = "<group>";
 		};
@@ -89,7 +127,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastUpgradeCheck = 1600;
+				LastUpgradeCheck = 1620;
 				TargetAttributes = {
 					DA17ABA72CC65EAB00CFAD5C = {
 						CreatedOnToolsVersion = 16.0;
@@ -160,6 +198,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -221,6 +260,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -245,6 +285,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -253,6 +294,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
