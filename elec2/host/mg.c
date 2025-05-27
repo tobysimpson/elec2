@@ -37,7 +37,7 @@ void mg_ini(struct ocl_obj *ocl, struct mg_obj *mg, struct msh_obj *msh)
         lvl->uu = clCreateBuffer(ocl->context, CL_MEM_HOST_READ_ONLY, lvl->msh.ne_tot*sizeof(cl_float), NULL, &ocl->err);
         lvl->bb = clCreateBuffer(ocl->context, CL_MEM_HOST_READ_ONLY, lvl->msh.ne_tot*sizeof(cl_float), NULL, &ocl->err);
         lvl->rr = clCreateBuffer(ocl->context, CL_MEM_HOST_READ_ONLY, lvl->msh.ne_tot*sizeof(cl_float), NULL, &ocl->err);
-        lvl->aa = clCreateBuffer(ocl->context, CL_MEM_HOST_READ_ONLY, lvl->msh.ne_tot*sizeof(cl_float), NULL, &ocl->err);
+        lvl->gg = clCreateBuffer(ocl->context, CL_MEM_HOST_READ_ONLY, lvl->msh.ne_tot*sizeof(cl_float), NULL, &ocl->err);
     }
     
     //ini
@@ -74,14 +74,14 @@ void mg_fwd(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, struct lv
     
     //args
     ocl->err = clSetKernelArg(op->ele_fwd,  0, sizeof(struct msh_obj),    (void*)&lvl->msh);
-    ocl->err = clSetKernelArg(op->ele_fwd,  1, sizeof(cl_mem),            (void*)&lvl->aa);
+    ocl->err = clSetKernelArg(op->ele_fwd,  1, sizeof(cl_mem),            (void*)&lvl->gg);
     ocl->err = clSetKernelArg(op->ele_fwd,  2, sizeof(cl_mem),            (void*)&lvl->bb);
     
     //clock
     clock_gettime(CLOCK_REALTIME, &cpu_t0);
 
     //fwd
-    ocl->err = clEnqueueNDRangeKernel(ocl->command_queue, op->ele_fwd, 3, NULL, lvl->msh.ie_sz, NULL, 0, NULL, &ocl->event);
+    ocl->err = clEnqueueNDRangeKernel(ocl->command_queue, op->ele_fwd, 3, NULL, lvl->msh.ne_sz, NULL, 0, NULL, &ocl->event);
     
     //complete
     clWaitForEvents(1, &ocl->event);
@@ -91,9 +91,9 @@ void mg_fwd(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, struct lv
     ocl->err = clGetEventProfilingInfo(ocl->event, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &gpu_t1, NULL);
     
  
-    printf("fwd [%4lu,%4lu,%4lu]%12lu %e %e\n",
-           lvl->msh.iv_sz[0],lvl->msh.iv_sz[1],lvl->msh.iv_sz[2],
-           lvl->msh.iv_sz[0]*lvl->msh.iv_sz[1]*lvl->msh.iv_sz[2],
+    printf("fwd [%4lu,%4lu,%4lu] %lu %e %e\n",
+           lvl->msh.ne_sz[0],lvl->msh.ne_sz[1],lvl->msh.ne_sz[2],
+           lvl->msh.ne_sz[0]*lvl->msh.ne_sz[1]*lvl->msh.ne_sz[2],
            (1e9*cpu_t1.tv_sec + cpu_t1.tv_nsec) - (1e9*cpu_t0.tv_sec + cpu_t0.tv_nsec),
            (double)(gpu_t1 - gpu_t0));
     
@@ -111,7 +111,7 @@ void mg_jac(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, struct lv
     //smooth
     for(int j=0; j<mg->nj; j++)
     {
-        ocl->err = clEnqueueNDRangeKernel(ocl->command_queue, op->ele_jac, 3, NULL, lvl->msh.ie_sz, NULL, 0, NULL, NULL);
+        ocl->err = clEnqueueNDRangeKernel(ocl->command_queue, op->ele_jac, 3, NULL, lvl->msh.ne_sz, NULL, 0, NULL, NULL);
     }
 
     return;
@@ -128,7 +128,7 @@ void mg_res(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, struct lv
     ocl->err = clSetKernelArg(op->ele_res,  3, sizeof(cl_mem),            (void*)&lvl->rr);
     
     //residual
-    ocl->err = clEnqueueNDRangeKernel(ocl->command_queue, op->ele_res, 3, NULL, lvl->msh.ie_sz, NULL, 0, NULL, NULL);
+    ocl->err = clEnqueueNDRangeKernel(ocl->command_queue, op->ele_res, 3, NULL, lvl->msh.ne_sz, NULL, 0, NULL, NULL);
     
     return;
 }
@@ -257,7 +257,7 @@ void mg_nrm(struct ocl_obj *ocl, struct mg_obj *mg, struct lvl_obj *lvl)
     //err
     ocl->err = clSetKernelArg(mg->ele_esq,  0, sizeof(struct msh_obj),    (void*)&lvl->msh);
     ocl->err = clSetKernelArg(mg->ele_esq,  1, sizeof(cl_mem),            (void*)&lvl->uu);
-    ocl->err = clSetKernelArg(mg->ele_esq,  2, sizeof(cl_mem),            (void*)&lvl->aa);
+    ocl->err = clSetKernelArg(mg->ele_esq,  2, sizeof(cl_mem),            (void*)&lvl->gg);
     ocl->err = clSetKernelArg(mg->ele_esq,  3, sizeof(cl_mem),            (void*)&lvl->rr);
     
     //err
@@ -326,7 +326,7 @@ void mg_fin(struct ocl_obj *ocl, struct mg_obj *mg)
         ocl->err = clReleaseMemObject(mg->lvls[l].uu);
         ocl->err = clReleaseMemObject(mg->lvls[l].bb);
         ocl->err = clReleaseMemObject(mg->lvls[l].rr);
-        ocl->err = clReleaseMemObject(mg->lvls[l].aa);
+        ocl->err = clReleaseMemObject(mg->lvls[l].gg);
     }
     
     //mem

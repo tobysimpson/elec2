@@ -7,19 +7,21 @@
 //
 
 
+#include "sdf.h"
+
 
 //stimulus
-float fn_g0(float3 x)
+float geo_g0(float3 x)
 {
-    float3 c = (float3){-4e0f, 0e0f, +5e0f};
-    float  r = 1.0f;
+    float3 c = (float3){0.5f,0.5f,0.5f};
+    float  r = 0.25f;
     
     return sdf_sph(x, c, r);
 }
 
 
 //cube
-float fn_g1(float3 x)
+float geo_g1(float3 x)
 {
     float3 c = (float3){1.0f,1.0f,1.0f};
     float3 r = (float3){1.0f,1.0f,1.0f};
@@ -28,17 +30,17 @@ float fn_g1(float3 x)
 }
 
 //epicardium
-float fn_e1(float3 x)
+float geo_e1(float3 x)
 {
     return sdf_cap(x, (float3){0e0f, 0e0f, -2e0f}, (float3){0e0f, 0e0f, +2e0f}, 6.0f);
 }
 
 
 //heart
-float fn_h1(float3 x)
+float geo_h1(float3 x)
 {
     //epicardium
-    float s1 = fn_e1(x);
+    float s1 = geo_e1(x);
     
     //subtract endocardium for void
     float cap1 = sdf_cap(x, (float3){0e0f, 0e0f, -2e0f}, (float3){0e0f, 0e0f, +2e0f}, 4.0f);    //endo

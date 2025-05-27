@@ -49,9 +49,9 @@ void wrt_xmf(struct ocl_obj *ocl, struct msh_obj *msh, int idx)
     fprintf(file1,"             /Users/toby/Downloads/raw/rr.%02u%02u%02u.%03d.raw\n", msh->le.x, msh->le.y, msh->le.z, idx);
     fprintf(file1,"           </DataItem>\n");
     fprintf(file1,"         </Attribute>\n");
-    fprintf(file1,"         <Attribute Name=\"aa\" Center=\"Cell\" AttributeType=\"Scalar\">\n");
+    fprintf(file1,"         <Attribute Name=\"gg\" Center=\"Cell\" AttributeType=\"Scalar\">\n");
     fprintf(file1,"           <DataItem Format=\"Binary\" Dimensions=\"%u %u %u 1\" Endian=\"Little\" Precision=\"4\" NumberType=\"Float\">\n", msh->ne.z, msh->ne.y, msh->ne.x);
-    fprintf(file1,"             /Users/toby/Downloads/raw/aa.%02u%02u%02u.%03d.raw\n", msh->le.x, msh->le.y, msh->le.z, idx);
+    fprintf(file1,"             /Users/toby/Downloads/raw/gg.%02u%02u%02u.%03d.raw\n", msh->le.x, msh->le.y, msh->le.z, idx);
     fprintf(file1,"           </DataItem>\n");
     fprintf(file1,"         </Attribute>\n");
     fprintf(file1,"    </Grid>\n");

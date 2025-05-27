@@ -39,7 +39,7 @@ int main(int argc, const char * argv[])
     
     //mesh
     struct msh_obj msh;
-    msh.le = (cl_int3){9,9,9};
+    msh.le = (cl_int3){3,3,3};
     msh.dx = powf(2e0f, -msh.le.x); //[0,1]ˆ3
     msh.dt = 0.25f;
     msh_ini(&msh);
@@ -68,7 +68,7 @@ int main(int argc, const char * argv[])
         ocl.err = clSetKernelArg(mg.ele_ini,  1, sizeof(cl_mem),            (void*)&lvl->uu);
         ocl.err = clSetKernelArg(mg.ele_ini,  2, sizeof(cl_mem),            (void*)&lvl->bb);
         ocl.err = clSetKernelArg(mg.ele_ini,  3, sizeof(cl_mem),            (void*)&lvl->rr);
-        ocl.err = clSetKernelArg(mg.ele_ini,  4, sizeof(cl_mem),            (void*)&lvl->aa);
+        ocl.err = clSetKernelArg(mg.ele_ini,  4, sizeof(cl_mem),            (void*)&lvl->gg);
         
         //init
         ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, mg.ele_ini, 3, NULL, msh.ne_sz, NULL, 0, NULL, &ocl.event);
@@ -92,7 +92,7 @@ int main(int argc, const char * argv[])
     wrt_flt1(&ocl, &msh, &mg.lvls[0].uu, "uu", 0, msh.ne_tot);
     wrt_flt1(&ocl, &msh, &mg.lvls[0].bb, "bb", 0, msh.ne_tot);
     wrt_flt1(&ocl, &msh, &mg.lvls[0].rr, "rr", 0, msh.ne_tot);
-    wrt_flt1(&ocl, &msh, &mg.lvls[0].aa, "aa", 0, msh.ne_tot);
+    wrt_flt1(&ocl, &msh, &mg.lvls[0].gg, "gg", 0, msh.ne_tot);
 
     
     /*

@@ -21,7 +21,7 @@ struct lvl_obj
     cl_mem  uu;
     cl_mem  bb;
     cl_mem  rr;
-    cl_mem  aa;
+    cl_mem  gg;
 };
 
 

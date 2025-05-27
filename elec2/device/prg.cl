@@ -8,6 +8,7 @@
 
 
 #include "utl.h"
+#include "geo.h"
 
 
 /*
@@ -15,6 +16,7 @@
  mesh
  ===================================
  */
+
 
 //object
 struct msh_obj
@@ -50,20 +52,18 @@ kernel void ele_ini(const  struct msh_obj  msh,
                     global float           *uu,
                     global float           *bb,
                     global float           *rr,
-                    global float           *aa)
+                    global float           *gg)
 {
     int3  ele_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
     int   ele_idx  = utl_idx1(ele_pos, msh.ne);
     
     float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
     
-    float u = sin(x.x);
-    
     //write
-    uu[ele_idx] = u*utl_bnd2(ele_pos, msh.ne);
-    bb[ele_idx] = sin(x.x);
+    uu[ele_idx] = 0e0f;
+    bb[ele_idx] = 0e0f;
     rr[ele_idx] = 0e0f;
-    aa[ele_idx] = sin(x.x);
+    gg[ele_idx] = geo_g0(x);
 
     return;
 }
@@ -76,28 +76,33 @@ kernel void ele_ini(const  struct msh_obj  msh,
  */
 
 
-
 //forward
 kernel void ele_fwd(const  struct msh_obj   msh,
                     global float            *uu,
                     global float            *bb)
 {
-    int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)} + 1; //interior
+    int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int     ele_idx = utl_idx1(ele_pos, msh.ne);
     
     float s = 0.0f;
+    float d = 0.0f;
     
     //stencil
     for(int i=0; i<6; i++)
     {
         int3    adj_pos = ele_pos + off_fac[i];
+        int     adj_bnd = utl_bnd1(adj_pos, msh.ne);
         int     adj_idx = utl_idx1(adj_pos, msh.ne);
         
-        s += uu[adj_idx];
+        if(adj_bnd)
+        {
+            d += 1e0f;
+            s += uu[adj_idx];
+        }
     }
     
-    //store
-    bb[ele_idx] = msh.rdx2*(6.0f*uu[ele_idx] - s);
+    //fwd
+    bb[ele_idx] = msh.rdx2*(d*uu[ele_idx] - s);
     
     return;
 }
@@ -110,25 +115,31 @@ kernel void ele_res(const  struct msh_obj   msh,
                     global float            *bb,
                     global float            *rr)
 {
-    int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)} + 1; //interior
+    int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int     ele_idx = utl_idx1(ele_pos, msh.ne);
     
     float s = 0.0f;
+    float d = 0.0f;
     
     //stencil
     for(int i=0; i<6; i++)
     {
         int3    adj_pos = ele_pos + off_fac[i];
+        int     adj_bnd = utl_bnd1(adj_pos, msh.ne);
         int     adj_idx = utl_idx1(adj_pos, msh.ne);
         
-        s += uu[adj_idx];
+        if(adj_bnd)
+        {
+            d += 1e0f;
+            s += uu[adj_idx];
+        }
     }
     
-    //scale
-    float Au = msh.rdx2*(6.0f*uu[ele_idx] - s);
+    //fwd
+    float Au = msh.rdx2*(d*uu[ele_idx] - s);
     
-    //store
-    rr[ele_idx] = bb[ele_idx] - Au; //*h
+    //res
+    rr[ele_idx] = bb[ele_idx] - Au;
     
     return;
 }
@@ -139,29 +150,34 @@ kernel void ele_jac(const  struct msh_obj   msh,
                     global float            *uu,
                     global float            *bb)
 {
-    int3  ele_pos  = (int3){get_global_id(0), get_global_id(1), get_global_id(2)} + 1; //interior
+    int3  ele_pos  = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int   ele_idx  = utl_idx1(ele_pos, msh.ne);
     
-    float s = 0e0f;
+    float s = 0.0f;
+    float d = 0.0f;
     
     //stencil
     for(int i=0; i<6; i++)
     {
         int3    adj_pos = ele_pos + off_fac[i];
+        int     adj_bnd = utl_bnd1(adj_pos, msh.ne);
         int     adj_idx = utl_idx1(adj_pos, msh.ne);
         
-        s += uu[adj_idx];
+        if(adj_bnd)
+        {
+            d += 1e0f;
+            s += uu[adj_idx];
+        }
     }
     
-    //scale
-    float Au = msh.rdx2*(6.0f*uu[ele_idx] - s);
+    //fwd
+    float Au = msh.rdx*(d*uu[ele_idx] - s); //mult by h
     
-    //store
-    float r = bb[ele_idx] - Au;
-    
+    //res
+    float r = msh.dx*bb[ele_idx] - Au;      //mult by h
     
     //du = D^-1(r)
-    uu[ele_idx] += 0.9*msh.dx2*r/6.0f; //0.9
+    uu[ele_idx] += 0.9*msh.dx*r/d;          //divide by h
     
     return;
 }
