@@ -40,14 +40,14 @@ int main(int argc, const char * argv[])
     //mesh
     struct msh_obj msh;
     msh.le = (cl_int3){3,3,3};
-    msh.dx = powf(2e0f, -msh.le.x); //[0,1]ˆ3
-    msh.dt = 0.25f;
+    msh.dx = 1.0f; //powf(2e0f, -msh.le.x); //[0,1]ˆ3
+    msh.dt = 0.1f;
     msh_ini(&msh);
     
     //multigrid
     struct mg_obj mg;
     mg.nl = msh.le.x;
-    mg.nj = 5;
+    mg.nj = 1;
     mg.nc = 10;
     mg_ini(&ocl, &mg, &msh);
     
@@ -73,26 +73,45 @@ int main(int argc, const char * argv[])
         //init
         ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, mg.ele_ini, 3, NULL, msh.ne_sz, NULL, 0, NULL, &ocl.event);
         
-        //fwd
-//        mg_fwd(&ocl, &mg, &mg.ops[0], lvl);
+        //cn rhs
+//        mg_fwd(&ocl, &mg, &mg.ops[1], lvl);
         
         //jac
-        mg_jac(&ocl, &mg, &mg.ops[0], lvl);
+//        mg_jac(&ocl, &mg, &mg.ops[0], lvl);
         
         //norms
-        mg_nrm(&ocl, &mg, lvl);
+//        mg_nrm(&ocl, &mg, lvl);
         
     }
     
-    //solve
-    mg_cyc(&ocl, &mg, &mg.ops[0]);
     
-    //write
-    wrt_xmf(&ocl, &msh, 0);
-    wrt_flt1(&ocl, &msh, &mg.lvls[0].uu, "uu", 0, msh.ne_tot);
-    wrt_flt1(&ocl, &msh, &mg.lvls[0].bb, "bb", 0, msh.ne_tot);
-    wrt_flt1(&ocl, &msh, &mg.lvls[0].rr, "rr", 0, msh.ne_tot);
-    wrt_flt1(&ocl, &msh, &mg.lvls[0].gg, "gg", 0, msh.ne_tot);
+    //loop
+    for(int frm=0; frm<100; frm++)
+    {
+        if((frm % 10)==0)
+        {
+            printf("%03d\n",frm);
+        }
+    
+        
+        //write
+        wrt_xmf(&ocl, &msh, frm);
+        wrt_flt1(&ocl, &msh, &mg.lvls[0].uu, "uu", frm, msh.ne_tot);
+        wrt_flt1(&ocl, &msh, &mg.lvls[0].bb, "bb", frm, msh.ne_tot);
+        wrt_flt1(&ocl, &msh, &mg.lvls[0].rr, "rr", frm, msh.ne_tot);
+        wrt_flt1(&ocl, &msh, &mg.lvls[0].gg, "gg", frm, msh.ne_tot);
+        
+        
+        //rhs
+        mg_fwd(&ocl, &mg, &mg.ops[1], &mg.lvls[0]);
+        
+        //jac
+        mg_jac(&ocl, &mg, &mg.ops[1], &mg.lvls[0]);
+     
+        
+    }//frm
+    
+
 
     
     /*

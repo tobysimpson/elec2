@@ -53,9 +53,14 @@ void mg_ini(struct ocl_obj *ocl, struct mg_obj *mg, struct msh_obj *msh)
     mg->vec_sum = clCreateKernel(ocl->program, "vec_sum", &ocl->err);
     
     //poisson
-    mg->ops[0].ele_fwd = clCreateKernel(ocl->program, "ele_fwd", &ocl->err);
-    mg->ops[0].ele_res = clCreateKernel(ocl->program, "ele_res", &ocl->err);
-    mg->ops[0].ele_jac = clCreateKernel(ocl->program, "ele_jac", &ocl->err);
+    mg->ops[0].ele_fwd = clCreateKernel(ocl->program, "ele_fwd0", &ocl->err);
+    mg->ops[0].ele_res = clCreateKernel(ocl->program, "ele_res0", &ocl->err);
+    mg->ops[0].ele_jac = clCreateKernel(ocl->program, "ele_jac0", &ocl->err);
+    
+    //euler
+    mg->ops[1].ele_fwd = clCreateKernel(ocl->program, "ele_fwd1", &ocl->err);
+    mg->ops[1].ele_res = clCreateKernel(ocl->program, "ele_res1", &ocl->err);
+    mg->ops[1].ele_jac = clCreateKernel(ocl->program, "ele_jac1", &ocl->err);
     
     return;
 }
@@ -64,38 +69,38 @@ void mg_ini(struct ocl_obj *ocl, struct mg_obj *mg, struct msh_obj *msh)
 //forward b = Au, with timings
 void mg_fwd(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, struct lvl_obj *lvl)
 {
-    //wall time ms/ns (longs)
-    struct timespec cpu_t0;
-    struct timespec cpu_t1;
-    
-    //ocl time ns
-    cl_ulong gpu_t0;
-    cl_ulong gpu_t1;
+//    //wall time ms/ns (longs)
+//    struct timespec cpu_t0;
+//    struct timespec cpu_t1;
+//    
+//    //ocl time ns
+//    cl_ulong gpu_t0;
+//    cl_ulong gpu_t1;
     
     //args
     ocl->err = clSetKernelArg(op->ele_fwd,  0, sizeof(struct msh_obj),    (void*)&lvl->msh);
-    ocl->err = clSetKernelArg(op->ele_fwd,  1, sizeof(cl_mem),            (void*)&lvl->gg);
+    ocl->err = clSetKernelArg(op->ele_fwd,  1, sizeof(cl_mem),            (void*)&lvl->uu);
     ocl->err = clSetKernelArg(op->ele_fwd,  2, sizeof(cl_mem),            (void*)&lvl->bb);
     
     //clock
-    clock_gettime(CLOCK_REALTIME, &cpu_t0);
+//    clock_gettime(CLOCK_REALTIME, &cpu_t0);
 
     //fwd
     ocl->err = clEnqueueNDRangeKernel(ocl->command_queue, op->ele_fwd, 3, NULL, lvl->msh.ne_sz, NULL, 0, NULL, &ocl->event);
     
     //complete
-    clWaitForEvents(1, &ocl->event);
-    clock_gettime(CLOCK_REALTIME, &cpu_t1);
+//    clWaitForEvents(1, &ocl->event);
+//    clock_gettime(CLOCK_REALTIME, &cpu_t1);
 
-    ocl->err = clGetEventProfilingInfo(ocl->event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &gpu_t0, NULL);
-    ocl->err = clGetEventProfilingInfo(ocl->event, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &gpu_t1, NULL);
+//    ocl->err = clGetEventProfilingInfo(ocl->event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &gpu_t0, NULL);
+//    ocl->err = clGetEventProfilingInfo(ocl->event, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &gpu_t1, NULL);
     
  
-    printf("fwd [%4lu,%4lu,%4lu] %lu %e %e\n",
-           lvl->msh.ne_sz[0],lvl->msh.ne_sz[1],lvl->msh.ne_sz[2],
-           lvl->msh.ne_sz[0]*lvl->msh.ne_sz[1]*lvl->msh.ne_sz[2],
-           (1e9*cpu_t1.tv_sec + cpu_t1.tv_nsec) - (1e9*cpu_t0.tv_sec + cpu_t0.tv_nsec),
-           (double)(gpu_t1 - gpu_t0));
+//    printf("fwd [%2d %2d %2d] %d %e %e\n",
+//           lvl->msh.le.x,lvl->msh.le.y,lvl->msh.le.z,
+//           lvl->msh.ne_tot,
+//           (1e9*cpu_t1.tv_sec + cpu_t1.tv_nsec) - (1e9*cpu_t0.tv_sec + cpu_t0.tv_nsec),
+//           (double)(gpu_t1 - gpu_t0));
     
     return;
 }

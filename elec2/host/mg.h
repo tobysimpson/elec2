@@ -59,7 +59,7 @@ struct mg_obj
     cl_kernel       vec_sum;
     
     //ops
-    struct op_obj ops[1];
+    struct op_obj ops[2];
 
 };
 

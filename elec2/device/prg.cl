@@ -60,24 +60,157 @@ kernel void ele_ini(const  struct msh_obj  msh,
     float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
     
     //write
-    uu[ele_idx] = 0e0f;
+    uu[ele_idx] = geo_g1(x)<=0e0f;
     bb[ele_idx] = 0e0f;
     rr[ele_idx] = 0e0f;
-    gg[ele_idx] = geo_g0(x);
+    gg[ele_idx] = 0e0f;
 
     return;
 }
 
 
+
 /*
  ============================
- operator
+ poisson -Au=b
  ============================
  */
 
 
 //forward
-kernel void ele_fwd(const  struct msh_obj   msh,
+kernel void ele_fwd0(const  struct msh_obj   msh,
+                    global float            *uu,
+                    global float            *bb)
+{
+    int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
+    int     ele_idx = utl_idx1(ele_pos, msh.ne);
+    
+    float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
+    
+    //torso
+    if(geo_g1(x)>0e0f)
+    {
+        float s = 0.0f;
+        float d = 0.0f;
+        
+        //stencil
+        for(int i=0; i<6; i++)
+        {
+            int3    adj_pos = ele_pos + off_fac[i];
+            int     adj_bnd = utl_bnd1(adj_pos, msh.ne);//zero neuman on domain
+            int     adj_idx = utl_idx1(adj_pos, msh.ne);
+            
+            if(adj_bnd)
+            {
+                d += 1e0f;
+                s += uu[adj_idx];
+            }
+        }
+        
+        //fwd
+        bb[ele_idx] = msh.rdx2*(d*uu[ele_idx] - s);
+    }
+    
+    return;
+}
+
+
+
+//residual
+kernel void ele_res0(const  struct msh_obj   msh,
+                    global float            *uu,
+                    global float            *bb,
+                    global float            *rr)
+{
+    int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
+    int     ele_idx = utl_idx1(ele_pos, msh.ne);
+    
+    float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
+    
+    //torso
+    if(geo_g1(x)>0e0f)
+    {
+        float s = 0.0f;
+        float d = 0.0f;
+        
+        //stencil
+        for(int i=0; i<6; i++)
+        {
+            int3    adj_pos = ele_pos + off_fac[i];
+            int     adj_bnd = utl_bnd1(adj_pos, msh.ne);
+            int     adj_idx = utl_idx1(adj_pos, msh.ne);
+            
+            if(adj_bnd)
+            {
+                d += 1e0f;
+                s += uu[adj_idx];
+            }
+        }
+        
+        //fwd
+        float Au = msh.rdx2*(d*uu[ele_idx] - s);
+        
+        //res
+        rr[ele_idx] = bb[ele_idx] - Au;
+    }
+    
+    return;
+}
+
+
+//jacobi
+kernel void ele_jac0(const  struct msh_obj   msh,
+                    global float            *uu,
+                    global float            *bb)
+{
+    int3  ele_pos  = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
+    int   ele_idx  = utl_idx1(ele_pos, msh.ne);
+    
+    float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
+    
+    //torso
+    if(geo_g1(x)>0e0f)
+    {
+        float s = 0.0f;
+        float d = 0.0f;
+        
+        //stencil
+        for(int i=0; i<6; i++)
+        {
+            int3    adj_pos = ele_pos + off_fac[i];
+            int     adj_bnd = utl_bnd1(adj_pos, msh.ne);
+            int     adj_idx = utl_idx1(adj_pos, msh.ne);
+            
+            if(adj_bnd)
+            {
+                d += 1e0f;
+                s += uu[adj_idx];
+            }
+        }
+        
+        //fwd
+        float Au = msh.rdx*(d*uu[ele_idx] - s); //mult by h
+        
+        //res
+        float r = msh.dx*bb[ele_idx] - Au;      //mult by h
+        
+        //du = D^-1(r)
+        uu[ele_idx] += 0.9*msh.dx*r/d;          //divide by h
+    }
+    
+    return;
+}
+
+
+/*
+ ================================================
+ crank nicolson (I-alp*A)uˆ(t+1) = (I+alp*A)uˆ(t)
+ ================================================
+ */
+
+
+//rhs
+kernel void ele_fwd1(const  struct msh_obj   msh,
                     global float            *uu,
                     global float            *bb)
 {
@@ -101,8 +234,11 @@ kernel void ele_fwd(const  struct msh_obj   msh,
         }
     }
     
-    //fwd
-    bb[ele_idx] = msh.rdx2*(d*uu[ele_idx] - s);
+    //constants
+//    float alp = msh.dt*msh.rdx2;
+    
+    //rhs
+    bb[ele_idx] = uu[ele_idx]; // + 0.5f*alp*(s - d);
     
     return;
 }
@@ -110,7 +246,7 @@ kernel void ele_fwd(const  struct msh_obj   msh,
 
 
 //residual
-kernel void ele_res(const  struct msh_obj   msh,
+kernel void ele_res1(const  struct msh_obj   msh,
                     global float            *uu,
                     global float            *bb,
                     global float            *rr)
@@ -135,8 +271,11 @@ kernel void ele_res(const  struct msh_obj   msh,
         }
     }
     
-    //fwd
-    float Au = msh.rdx2*(d*uu[ele_idx] - s);
+    //constants
+    float alp = msh.dt*msh.rdx2;
+    
+    //lhs
+    float Au = uu[ele_idx] - alp*(s - d);
     
     //res
     rr[ele_idx] = bb[ele_idx] - Au;
@@ -146,7 +285,7 @@ kernel void ele_res(const  struct msh_obj   msh,
 
 
 //jacobi
-kernel void ele_jac(const  struct msh_obj   msh,
+kernel void ele_jac1(const  struct msh_obj   msh,
                     global float            *uu,
                     global float            *bb)
 {
@@ -165,22 +304,30 @@ kernel void ele_jac(const  struct msh_obj   msh,
         
         if(adj_bnd)
         {
-            d += 1e0f;
+            d -= 1e0f;
             s += uu[adj_idx];
         }
     }
     
-    //fwd
-    float Au = msh.rdx*(d*uu[ele_idx] - s); //mult by h
+    //constants
+    float alp = msh.dt*msh.rdx2;
+    
+    //lhs
+//    float Au = uu[ele_idx] - alp*(s - d);
     
     //res
-    float r = msh.dx*bb[ele_idx] - Au;      //mult by h
+//    float r = bb[ele_idx] - Au;
     
     //du = D^-1(r)
-    uu[ele_idx] += 0.9*msh.dx*r/d;          //divide by h
+    uu[ele_idx] = (bb[ele_idx] + alp*s)/(1e0f - alp*d);
+    
+    
     
     return;
 }
+
+
+
 
 
 /*

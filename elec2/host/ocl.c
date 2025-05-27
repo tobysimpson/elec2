@@ -21,8 +21,8 @@ void ocl_ini(struct ocl_obj *ocl)
     ocl->err            = clGetPlatformIDs(1, &ocl->platform_id, &ocl->num_platforms);                                              //platform
     ocl->err            = clGetDeviceIDs(ocl->platform_id, CL_DEVICE_TYPE_GPU, 1, &ocl->device_id, &ocl->num_devices);              //devices
     ocl->context        = clCreateContext(NULL, ocl->num_devices, &ocl->device_id, NULL, NULL, &ocl->err);                          //context
-//    ocl->command_queue  = clCreateCommandQueue(ocl->context, ocl->device_id, 0, &ocl->err);                                         //command queue
-    ocl->command_queue  = clCreateCommandQueue(ocl->context, ocl->device_id, CL_QUEUE_PROFILING_ENABLE, &ocl->err);                 //command queue, with profiling
+    ocl->command_queue  = clCreateCommandQueue(ocl->context, ocl->device_id, 0, &ocl->err);                                         //command queue
+//    ocl->command_queue  = clCreateCommandQueue(ocl->context, ocl->device_id, CL_QUEUE_PROFILING_ENABLE, &ocl->err);                 //command queue, with profiling
     ocl->err            = clGetDeviceInfo(ocl->device_id, CL_DEVICE_NAME, 50, &ocl->device_str[0], NULL);                           //device info
     ocl->err            = clGetDeviceInfo(ocl->device_id, CL_DEVICE_MAX_WORK_ITEM_SIZES, 24, &ocl->device_num, NULL);                 //device info CL_DEVICE_MAX_MEM_ALLOC_SIZE, CL_DEVICE_MAX_WORK_GROUP_SIZE, CL_DEVICE_MAX_WORK_ITEM_SIZES
 
