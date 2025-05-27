@@ -69,39 +69,14 @@ void mg_ini(struct ocl_obj *ocl, struct mg_obj *mg, struct msh_obj *msh)
 //forward b = Au, with timings
 void mg_fwd(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, struct lvl_obj *lvl)
 {
-//    //wall time ms/ns (longs)
-//    struct timespec cpu_t0;
-//    struct timespec cpu_t1;
-//    
-//    //ocl time ns
-//    cl_ulong gpu_t0;
-//    cl_ulong gpu_t1;
-    
     //args
     ocl->err = clSetKernelArg(op->ele_fwd,  0, sizeof(struct msh_obj),    (void*)&lvl->msh);
     ocl->err = clSetKernelArg(op->ele_fwd,  1, sizeof(cl_mem),            (void*)&lvl->uu);
     ocl->err = clSetKernelArg(op->ele_fwd,  2, sizeof(cl_mem),            (void*)&lvl->bb);
     
-    //clock
-//    clock_gettime(CLOCK_REALTIME, &cpu_t0);
-
     //fwd
     ocl->err = clEnqueueNDRangeKernel(ocl->command_queue, op->ele_fwd, 3, NULL, lvl->msh.ne_sz, NULL, 0, NULL, &ocl->event);
-    
-    //complete
-//    clWaitForEvents(1, &ocl->event);
-//    clock_gettime(CLOCK_REALTIME, &cpu_t1);
 
-//    ocl->err = clGetEventProfilingInfo(ocl->event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &gpu_t0, NULL);
-//    ocl->err = clGetEventProfilingInfo(ocl->event, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &gpu_t1, NULL);
-    
- 
-//    printf("fwd [%2d %2d %2d] %d %e %e\n",
-//           lvl->msh.le.x,lvl->msh.le.y,lvl->msh.le.z,
-//           lvl->msh.ne_tot,
-//           (1e9*cpu_t1.tv_sec + cpu_t1.tv_nsec) - (1e9*cpu_t0.tv_sec + cpu_t0.tv_nsec),
-//           (double)(gpu_t1 - gpu_t0));
-    
     return;
 }
 
@@ -137,34 +112,6 @@ void mg_res(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, struct lv
     
     return;
 }
-
-
-////jacobi
-//void mg_jac(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, struct lvl_obj *lvl)
-//{
-//    //args
-//    ocl->err = clSetKernelArg(op->ele_res,  0, sizeof(struct msh_obj),    (void*)&lvl->msh);
-//    ocl->err = clSetKernelArg(op->ele_res,  1, sizeof(cl_mem),            (void*)&lvl->uu);
-//    ocl->err = clSetKernelArg(op->ele_res,  2, sizeof(cl_mem),            (void*)&lvl->bb);
-//    ocl->err = clSetKernelArg(op->ele_res,  3, sizeof(cl_mem),            (void*)&lvl->rr);
-//
-//    ocl->err = clSetKernelArg(op->ele_jac,  0, sizeof(struct msh_obj),    (void*)&lvl->msh);
-//    ocl->err = clSetKernelArg(op->ele_jac,  1, sizeof(cl_mem),            (void*)&lvl->uu);
-//    ocl->err = clSetKernelArg(op->ele_jac,  2, sizeof(cl_mem),            (void*)&lvl->rr);
-//
-//    //smooth
-//    for(int j=0; j<mg->nj; j++)
-//    {
-//        //solve
-//        ocl->err = clEnqueueNDRangeKernel(ocl->command_queue, op->ele_res, 3, NULL, lvl->msh.ie_sz, NULL, 0, NULL, NULL);
-//        ocl->err = clEnqueueNDRangeKernel(ocl->command_queue, op->ele_jac, 3, NULL, lvl->msh.ie_sz, NULL, 0, NULL, NULL);
-//    }
-//
-//    //residual
-//    ocl->err = clEnqueueNDRangeKernel(ocl->command_queue, op->ele_res, 3, NULL, lvl->msh.ie_sz, NULL, 0, NULL, NULL);
-//
-//    return;
-//}
 
 
 //interp
@@ -239,13 +186,13 @@ void mg_cyc(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op)
             
         } //dsc
         
-    }   //cycle
+    } //cycle
     
-    //resid
-    mg_res(ocl, mg, op, &mg->lvls[0]);
-
-    //norms
-    mg_nrm(ocl, mg,  &mg->lvls[0]);
+//    //resid
+//    mg_res(ocl, mg, op, &mg->lvls[0]);
+//
+//    //norms
+//    mg_nrm(ocl, mg,  &mg->lvls[0]);
     
     return;
 }
@@ -272,9 +219,7 @@ void mg_nrm(struct ocl_obj *ocl, struct mg_obj *mg, struct lvl_obj *lvl)
     float dx3 = lvl->msh.dx*lvl->msh.dx2;
     
     //norms
-//    printf("nrm [%2u,%2u,%2u] %+e %+e  %+e %+e  %+e %+e\n", lvl->msh.le.x, lvl->msh.le.y, lvl->msh.le.z, r, e, dx3*r, dx3*e, sqrt(dx3*r), sqrt(dx3*e));
     printf("nrm [%2u,%2u,%2u] %+e %+e\n", lvl->msh.le.x, lvl->msh.le.y, lvl->msh.le.z, sqrt(dx3*r), sqrt(dx3*e));
-//    printf("nrm [%2u,%2u,%2u] %+e %+e\n", lvl->msh.le.x, lvl->msh.le.y, lvl->msh.le.z, r, e);
     
     return;
 }
@@ -294,8 +239,6 @@ float mg_red(struct ocl_obj *ocl, struct mg_obj *mg, cl_mem uu, cl_int n)
     {
         size_t p = pow(2,l-i-1);
         
-//        printf("%2d %2d %u %zu\n", i, l, n, p);
-    
         //calc
         ocl->err = clEnqueueNDRangeKernel(ocl->command_queue, mg->vec_sum, 1, NULL, &p, NULL, 0, NULL, NULL);
     }
