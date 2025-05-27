@@ -47,7 +47,7 @@ int main(int argc, const char * argv[])
     //multigrid
     struct mg_obj mg;
     mg.nl = msh.le.x;
-    mg.nj = 1;
+    mg.nj = 10;
     mg.nc = 10;
     mg_ini(&ocl, &mg, &msh);
     
@@ -88,10 +88,10 @@ int main(int argc, const char * argv[])
     //loop
     for(int frm=0; frm<100; frm++)
     {
-        if((frm % 10)==0)
-        {
+//        if((frm % 10)==0)
+//        {
             printf("%03d\n",frm);
-        }
+//        }
     
         
         //write
@@ -105,8 +105,16 @@ int main(int argc, const char * argv[])
         //rhs
         mg_fwd(&ocl, &mg, &mg.ops[1], &mg.lvls[0]);
         
-        //jac
-        mg_jac(&ocl, &mg, &mg.ops[1], &mg.lvls[0]);
+//        //jac
+//        mg_jac(&ocl, &mg, &mg.ops[1], &mg.lvls[0]);
+//        
+//        //resid
+//        mg_res(&ocl, &mg, &mg.ops[1], &mg.lvls[0]);
+//        
+//        //norms
+//        mg_nrm(&ocl, &mg,  &mg.lvls[0]);
+        
+        mg_cyc(&ocl, &mg, &mg.ops[1]);
      
         
     }//frm

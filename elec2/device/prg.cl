@@ -217,22 +217,22 @@ kernel void ele_fwd1(const  struct msh_obj   msh,
     int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int     ele_idx = utl_idx1(ele_pos, msh.ne);
     
-    float s = 0.0f;
-    float d = 0.0f;
-    
-    //stencil
-    for(int i=0; i<6; i++)
-    {
-        int3    adj_pos = ele_pos + off_fac[i];
-        int     adj_bnd = utl_bnd1(adj_pos, msh.ne);
-        int     adj_idx = utl_idx1(adj_pos, msh.ne);
-        
-        if(adj_bnd)
-        {
-            d += 1e0f;
-            s += uu[adj_idx];
-        }
-    }
+//    float s = 0.0f;
+//    float d = 0.0f;
+//    
+//    //stencil
+//    for(int i=0; i<6; i++)
+//    {
+//        int3    adj_pos = ele_pos + off_fac[i];
+//        int     adj_bnd = utl_bnd1(adj_pos, msh.ne);
+//        int     adj_idx = utl_idx1(adj_pos, msh.ne);
+//        
+//        if(adj_bnd)
+//        {
+//            d -= 1e0f;
+//            s += uu[adj_idx];
+//        }
+//    }
     
     //constants
 //    float alp = msh.dt*msh.rdx2;
@@ -254,6 +254,8 @@ kernel void ele_res1(const  struct msh_obj   msh,
     int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int     ele_idx = utl_idx1(ele_pos, msh.ne);
     
+    float u = uu[ele_idx];
+    
     float s = 0.0f;
     float d = 0.0f;
     
@@ -266,7 +268,7 @@ kernel void ele_res1(const  struct msh_obj   msh,
         
         if(adj_bnd)
         {
-            d += 1e0f;
+            d -= 1e0f;
             s += uu[adj_idx];
         }
     }
@@ -275,7 +277,7 @@ kernel void ele_res1(const  struct msh_obj   msh,
     float alp = msh.dt*msh.rdx2;
     
     //lhs
-    float Au = uu[ele_idx] - alp*(s - d);
+    float Au = u - alp*(s + d*u);
     
     //res
     rr[ele_idx] = bb[ele_idx] - Au;
@@ -320,8 +322,6 @@ kernel void ele_jac1(const  struct msh_obj   msh,
     
     //du = D^-1(r)
     uu[ele_idx] = (bb[ele_idx] + alp*s)/(1e0f - alp*d);
-    
-    
     
     return;
 }
