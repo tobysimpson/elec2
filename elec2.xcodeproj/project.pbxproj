@@ -26,15 +26,9 @@
 		DA4CFAF02D39047300EFDCF6 /* Exceptions for "elec2" folder in "elec2" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				device/geo.cl,
-				device/ion.cl,
-				device/mg.cl,
-				device/msh.cl,
 				device/ops1.cl,
 				device/ops2.cl,
 				device/prg.cl,
-				device/sdf.cl,
-				device/utl.cl,
 			);
 			target = DA17ABA72CC65EAB00CFAD5C /* elec2 */;
 		};
@@ -45,13 +39,8 @@
 			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
 			buildPhase = DA17ABA62CC65EAB00CFAD5C /* CopyFiles */;
 			membershipExceptions = (
-				device/geo.cl,
-				device/ion.cl,
-				device/mg.cl,
-				device/msh.cl,
 				device/prg.cl,
-				device/sdf.cl,
-				device/utl.cl,
+				device/utl.h,
 			);
 		};
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */

@@ -1,12 +1,13 @@
 //
 //  ocl.c
-//  mg2
+//  fsi2
 //
-//  Created by Toby Simpson on 05.12.2024.
-//  Copyright © 2024 Toby Simpson. All rights reserved.
+//  Created by Toby Simpson on 14.04.2025.
 //
 
+#include <stdio.h>
 #include "ocl.h"
+
 
 //init
 void ocl_ini(struct ocl_obj *ocl)
@@ -17,16 +18,16 @@ void ocl_ini(struct ocl_obj *ocl)
      =============================
      */
     
-    ocl->err            = clGetPlatformIDs(1, &ocl->platform_id, &ocl->num_platforms);                                  //platform
-    ocl->err            = clGetDeviceIDs(ocl->platform_id, CL_DEVICE_TYPE_GPU, 1, &ocl->device_id, &ocl->num_devices);  //devices
-    ocl->context        = clCreateContext(NULL, ocl->num_devices, &ocl->device_id, NULL, NULL, &ocl->err);              //context
-    ocl->command_queue  = clCreateCommandQueue(ocl->context, ocl->device_id, CL_QUEUE_PROFILING_ENABLE, &ocl->err);     //command queue
-    
-    ocl->err            = clGetDeviceInfo(ocl->device_id, CL_DEVICE_NAME,         50, &ocl->device_char, NULL);         //CL_DEVICE_NAME,
-    ocl->err            = clGetDeviceInfo(ocl->device_id, CL_DEVICE_ADDRESS_BITS,  4, &ocl->device_uint, NULL);         //CL_DEVICE_ADDRESS_BITS
+    ocl->err            = clGetPlatformIDs(1, &ocl->platform_id, &ocl->num_platforms);                                              //platform
+    ocl->err            = clGetDeviceIDs(ocl->platform_id, CL_DEVICE_TYPE_GPU, 1, &ocl->device_id, &ocl->num_devices);              //devices
+    ocl->context        = clCreateContext(NULL, ocl->num_devices, &ocl->device_id, NULL, NULL, &ocl->err);                          //context
+//    ocl->command_queue  = clCreateCommandQueue(ocl->context, ocl->device_id, 0, &ocl->err);                                         //command queue
+    ocl->command_queue  = clCreateCommandQueue(ocl->context, ocl->device_id, CL_QUEUE_PROFILING_ENABLE, &ocl->err);                 //command queue, with profiling
+    ocl->err            = clGetDeviceInfo(ocl->device_id, CL_DEVICE_NAME, 50, &ocl->device_str[0], NULL);                           //device info
+    ocl->err            = clGetDeviceInfo(ocl->device_id, CL_DEVICE_MAX_WORK_ITEM_SIZES, 24, &ocl->device_num, NULL);                 //device info CL_DEVICE_MAX_MEM_ALLOC_SIZE, CL_DEVICE_MAX_WORK_GROUP_SIZE, CL_DEVICE_MAX_WORK_ITEM_SIZES
 
-    printf("%s\n", ocl->device_char);
-//    printf("%u\n", ocl->device_uint);
+    printf("%s\n", ocl->device_str);
+    printf("%zu,%zu,%zu\n", ocl->device_num[0], ocl->device_num[1], ocl->device_num[2]);
 
     /*
      =============================
@@ -57,7 +58,7 @@ void ocl_ini(struct ocl_obj *ocl)
     printf("prg %d\n",ocl->err);
     
     //build
-    ocl->err = clBuildProgram(ocl->program, 1, &ocl->device_id, NULL, NULL, NULL);
+    ocl->err = clBuildProgram(ocl->program, 1, &ocl->device_id, NULL, NULL, NULL);  //-cl-fast-relaxed-math
     printf("bld %d\n",ocl->err);
     
     //clean

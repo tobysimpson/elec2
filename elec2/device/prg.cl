@@ -1,122 +1,288 @@
 //
 //  prg.cl
-//  mg2
+//  mg3
 //
-//  Created by Toby Simpson on 05.12.2024.
+//  Created by toby on 29.05.24.
 //  Copyright © 2024 Toby Simpson. All rights reserved.
 //
 
-#include "msh.cl"
-#include "utl.cl"
-#include "sdf.cl"
-#include "geo.cl"
-#include "ion.cl"
-#include "mg.cl"
 
+#include "utl.h"
 
 
 /*
  ===================================
- kernels
+ mesh
  ===================================
  */
 
-//init
-kernel void vtx_ini(const struct msh_obj    msh,
-                    global float            *uu,
-                    global float            *bb,
-                    global float            *rr,
-                    global float            *aa)
+//object
+struct msh_obj
 {
-    ulong3 vtx_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
-    ulong  vtx_idx  = fn_idx1(vtx_pos, msh.nv);
+    int3    le;
+    int3    ne;
+    int3    nv;
     
-    float3 x = fn_x1(vtx_pos, &msh);
+    int     ne_tot;
+    int     nv_tot;
     
-//    printf("%3lu %v3lu\n", vtx_idx, vtx_pos);
+    float   dt;
+    float   dx;
+    float   dx2;
+    float   rdx;
+    float   rdx2;
     
-    uu[vtx_idx] = (fn_g0(x)<=0e0f);
-    bb[vtx_idx] = 0e0f;     //fn_b1(x);
-    rr[vtx_idx] = 0e0f;
-    aa[vtx_idx] = fn_h1(x)<=0;     //fn_u1(x);
+    ulong   nv_sz[3];
+    ulong   ne_sz[3];
+    ulong   iv_sz[3];
+    ulong   ie_sz[3];
+};
+
+
+/*
+ ===================================
+ ini
+ ===================================
+ */
+
+
+kernel void ele_ini(const  struct msh_obj  msh,
+                    global float           *uu,
+                    global float           *bb,
+                    global float           *rr,
+                    global float           *aa)
+{
+    int3  ele_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
+    int   ele_idx  = utl_idx1(ele_pos, msh.ne);
+    
+    float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
+    
+    float u = sin(x.x);
+    
+    //write
+    uu[ele_idx] = u*utl_bnd2(ele_pos, msh.ne);
+    bb[ele_idx] = sin(x.x);
+    rr[ele_idx] = 0e0f;
+    aa[ele_idx] = sin(x.x);
+
+    return;
+}
+
+
+/*
+ ============================
+ operator
+ ============================
+ */
+
+
+
+//forward
+kernel void ele_fwd(const  struct msh_obj   msh,
+                    global float            *uu,
+                    global float            *bb)
+{
+    int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)} + 1; //interior
+    int     ele_idx = utl_idx1(ele_pos, msh.ne);
+    
+    float s = 0.0f;
+    
+    //stencil
+    for(int i=0; i<6; i++)
+    {
+        int3    adj_pos = ele_pos + off_fac[i];
+        int     adj_idx = utl_idx1(adj_pos, msh.ne);
+        
+        s += uu[adj_idx];
+    }
+    
+    //store
+    bb[ele_idx] = msh.rdx2*(6.0f*uu[ele_idx] - s);
     
     return;
 }
 
+
+
 //residual
-kernel void vtx_rsd(const  struct msh_obj   msh,
+kernel void ele_res(const  struct msh_obj   msh,
                     global float            *uu,
                     global float            *bb,
                     global float            *rr)
 {
-    ulong3 vtx_pos = {get_global_id(0), get_global_id(1), get_global_id(2)};
-    ulong  vtx_idx = fn_idx1(vtx_pos, msh.nv);
+    int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)} + 1; //interior
+    int     ele_idx = utl_idx1(ele_pos, msh.ne);
     
-    float3 x = fn_x1(vtx_pos, &msh);
-    
-    float  s = 0.0f;    //L+U
-    float  d = 0.0f;    //D
+    float s = 0.0f;
     
     //stencil
-    for(int k=0; k<6; k++)
+    for(int i=0; i<6; i++)
     {
-        ulong3  adj_pos = vtx_pos + off_fac[k];
-        ulong   adj_idx = fn_idx1(adj_pos, msh.nv);
-        int     adj_bnd = fn_bnd1(adj_pos, msh.nv);     //domain
-
-//        d += uu[vtx_idx];                             //zero dirichlet
+        int3    adj_pos = ele_pos + off_fac[i];
+        int     adj_idx = utl_idx1(adj_pos, msh.ne);
         
-        //domain
-        if(adj_bnd)
-        {
-            d += uu[vtx_idx];                           //zero neumann
-            s += uu[adj_idx];
-        }
+        s += uu[adj_idx];
     }
-    //constants
-    float alp = MD_SIG_H*msh.dt*msh.rdx2;
     
-    //operator (I-alp*A)*u
-    float Au = uu[vtx_idx] - alp*(s - d);
+    //scale
+    float Au = msh.rdx2*(6.0f*uu[ele_idx] - s);
     
-    //residual
-    rr[vtx_idx] = (fn_h1(x)<0e0f)?bb[vtx_idx] - Au:0e0f;    //geom
-//    rr[vtx_idx] = bb[vtx_idx] - Au;                       //no geom
-
+    //store
+    rr[ele_idx] = bb[ele_idx] - Au; //*h
+    
     return;
 }
 
 
 //jacobi
-kernel void vtx_jac(const  struct msh_obj   msh,
+kernel void ele_jac(const  struct msh_obj   msh,
                     global float            *uu,
-                    global float            *rr)
+                    global float            *bb)
 {
-    ulong3 vtx_pos = {get_global_id(0), get_global_id(1), get_global_id(2)};
-    ulong  vtx_idx = fn_idx1(vtx_pos, msh.nv);
+    int3  ele_pos  = (int3){get_global_id(0), get_global_id(1), get_global_id(2)} + 1; //interior
+    int   ele_idx  = utl_idx1(ele_pos, msh.ne);
     
-    float  d = 0.0f;    //degree
+    float s = 0e0f;
     
     //stencil
-    for(int k=0; k<6; k++)
+    for(int i=0; i<6; i++)
     {
-        ulong3  adj_pos = vtx_pos + off_fac[k];
+        int3    adj_pos = ele_pos + off_fac[i];
+        int     adj_idx = utl_idx1(adj_pos, msh.ne);
         
-//        d += 1e0f;                    //zero dirichlet
-        
-        //domain
-        if(fn_bnd1(adj_pos, msh.nv))
-        {
-            d += 1e0f;                    //zero neumann
-        }
+        s += uu[adj_idx];
     }
-    //constants
-    float alp = MD_SIG_H*msh.dt*msh.rdx2;
+    
+    //scale
+    float Au = msh.rdx2*(6.0f*uu[ele_idx] - s);
+    
+    //store
+    float r = bb[ele_idx] - Au;
+    
     
     //du = D^-1(r)
-    uu[vtx_idx] += rr[vtx_idx]/(1e0f + alp*d);
-
+    uu[ele_idx] += 0.9*msh.dx2*r/6.0f; //0.9
+    
     return;
 }
 
 
+/*
+ ============================
+ multigrid
+ ============================
+ */
+
+
+//projection
+kernel void ele_prj(const  struct msh_obj   mshc,    //coarse    (out)
+                    global float            *rrf,    //fine      (in)
+                    global float            *uuc,    //coarse    (out)
+                    global float            *bbc)    //coarse    (out)
+{
+    int3  ele_pos  = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
+    int   ele_idx  = utl_idx1(ele_pos, mshc.ne);
+    
+    
+    //fine
+    int3 pos = 2*ele_pos;
+    int3 dim = 2*mshc.ne;
+    
+    //sum
+    float s = 0e0f;
+    
+    //sum fine
+    for(int i=0; i<8; i++)
+    {
+        int3 adj_pos = pos + off_vtx[i];
+        int  adj_idx = utl_idx1(adj_pos, dim);
+        s += rrf[adj_idx];
+    }
+    
+    //store/reset
+    uuc[ele_idx] = 0e0f;
+    bbc[ele_idx] = s;
+    
+    return;
+}
+
+
+//interp
+kernel void ele_itp(const  struct msh_obj   mshf,    //fine      (out)
+                    global float            *uuc,    //coarse    (in)
+                    global float            *uuf)    //fine      (out)
+{
+    int3  ele_pos  = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
+    int   ele_idx  = utl_idx1(ele_pos, mshf.ne);   //fine
+    
+    //    printf("%2d %v3hlu\n", ele_idx, ele_pos/2);
+    
+    //coarse
+    int3 pos = ele_pos/2;
+    int3 dim = mshf.ne/2;
+    
+    //write - scale
+    uuf[ele_idx] += 0.125f*uuc[utl_idx1(pos, dim)];
+    
+    return;
+}
+
+/*
+ ============================
+ error
+ ============================
+ */
+
+
+//residual squared
+kernel void ele_rsq(const  struct msh_obj   msh,
+                    global float            *rr)
+{
+    int3  ele_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
+    int   ele_idx  = utl_idx1(ele_pos, msh.ne);
+    
+    //square/write
+    rr[ele_idx] = pown(rr[ele_idx],2);
+    
+    return;
+}
+
+
+//error squared
+kernel void ele_esq(const  struct msh_obj   msh,
+                    global float            *uu,
+                    global float            *aa,
+                    global float            *rr)
+{
+    int3  ele_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
+    int   ele_idx  = utl_idx1(ele_pos, msh.ne);
+    
+    //square/write
+    rr[ele_idx] = pown(aa[ele_idx] - uu[ele_idx],2);
+    
+    return;
+}
+
+/*
+ ============================
+ reduction
+ ============================
+ */
+
+
+//fold
+kernel void vec_sum(global float *uu,
+                    const  int   n)
+{
+    int i = get_global_id(0);
+    int m = get_global_size(0);
+
+//    printf("%d %d %d %f %f\n",i, n, m, uu[i], uu[m+i]);
+    
+    if((m+i)<n)
+    {
+        uu[i] += uu[m+i];
+    }
+      
+    return;
+}

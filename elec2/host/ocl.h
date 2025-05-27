@@ -1,21 +1,22 @@
 //
 //  ocl.h
-//  mg2
+//  mg1
 //
-//  Created by Toby Simpson on 05.12.2024.
+//  Created by toby on 29.05.24.
 //  Copyright © 2024 Toby Simpson. All rights reserved.
 //
 
 #ifndef ocl_h
 #define ocl_h
 
-#include <stdio.h>
+
 
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
 #else
 #include <CL/cl.h>
 #endif
+
 
 //object
 struct ocl_obj
@@ -29,15 +30,16 @@ struct ocl_obj
     cl_context          context;
     cl_command_queue    command_queue;
     cl_program          program;
+    char                device_str[50];
+    size_t              device_num[3];
     cl_event            event;
-    
-    //debug
-    char                device_char[50];
-    cl_uint             device_uint;
 };
 
-//functions
+
+
 void ocl_ini(struct ocl_obj *ocl);
 void ocl_fin(struct ocl_obj *ocl);
+
+
 
 #endif /* ocl_h */
