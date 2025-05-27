@@ -241,11 +241,11 @@ void mg_cyc(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op)
         
     }   //cycle
     
-//    //resid
-//    mg_res(ocl, mg, op, &mg->lvls[0]);
-//
-//    //norms
-//    mg_nrm(ocl, mg,  &mg->lvls[0]);
+    //resid
+    mg_res(ocl, mg, op, &mg->lvls[0]);
+
+    //norms
+    mg_nrm(ocl, mg,  &mg->lvls[0]);
     
     return;
 }
