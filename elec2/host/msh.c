@@ -38,15 +38,15 @@ void msh_ini(struct msh_obj *msh)
     msh->ie_sz[1]   = msh->ne.y - 2;
     msh->ie_sz[2]   = msh->ne.z - 2;
     
-    printf("msh [%2u %2u %2u] [%4u %4u %4u] [%4u %4u %4u] %12u %12u %e %e %e\n",
+    printf("msh [%2u %2u %2u] [%4u %4u %4u] %8u %e \n",
            msh->le.x, msh->le.y, msh->le.z,
            msh->ne.x, msh->ne.y, msh->ne.z,
-           msh->nv.x, msh->nv.y, msh->nv.z,
+//           msh->nv.x, msh->nv.y, msh->nv.z,
            msh->ne_tot,
-           msh->nv_tot,
-           msh->dx,
-           msh->dx2,
-           msh->rdx2);
+//           msh->nv_tot,
+           msh->dx);
+//           msh->dx2,
+//           msh->rdx2);
 
     return;
 }
