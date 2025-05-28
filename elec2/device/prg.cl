@@ -30,7 +30,7 @@ kernel void ele_ini(const  struct msh_obj  msh,
     float3 x = ele_x(ele_pos, msh);
     
     //write
-    uu[ele_idx] = geo_g1(x)<=0e0f;
+    uu[ele_idx] = geo_g0(x)<=0e0f;
     bb[ele_idx] = 0e0f;
     rr[ele_idx] = 0e0f;
     gg[ele_idx] = geo_g1(x);

@@ -107,18 +107,17 @@ int main(int argc, const char * argv[])
         wrt_flt1(&ocl, &msh, &mg.lvls[0].rr, "rr", frm, msh.ne_tot);
         wrt_flt1(&ocl, &msh, &mg.lvls[0].gg, "gg", frm, msh.ne_tot);
         
-//        //cn rhs
-//        mg_fwd(&ocl, &mg, &mg.ops[1], &mg.lvls[0]);
-//        
-//        //cn jac
-//        mg_jac(&ocl, &mg, &mg.ops[1], &mg.lvls[0]);
+        //cn rhs
+        mg_fwd(&ocl, &mg, &mg.ops[1], &mg.lvls[0]);
+        
+        //cn jac
+        mg_jac(&ocl, &mg, &mg.ops[1], &mg.lvls[0]);
         
         //ecg jac
-        mg_jac(&ocl, &mg, &mg.ops[0], &mg.lvls[0]);
+//        mg_jac(&ocl, &mg, &mg.ops[0], &mg.lvls[0]);
         
-        
-        //ecg
-//        mg_cyc(&ocl, &mg, &mg.ops[0]);
+        //ecg mg
+        mg_cyc(&ocl, &mg, &mg.ops[0]);
      
         
     }//frm
