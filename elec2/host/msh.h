@@ -15,12 +15,15 @@
 //object
 struct msh_obj
 {
-    cl_int3    le;
-    cl_int3    ne;
-    cl_int3    nv;
+    cl_int3     le;
+    cl_int3     ne;
+    cl_int3     nv;
     
-    cl_int     ne_tot;
-    cl_int     nv_tot;
+    cl_int      ne_tot;
+    cl_int      nv_tot;
+    
+//    cl_float3   x0;
+//    cl_float3   x1;
     
     cl_float    dt;
     cl_float    dx;

@@ -10,21 +10,22 @@
 #include "sdf.h"
 
 
+
 //stimulus
 float geo_g0(float3 x)
 {
-    float3 c = (float3){0.0f,0.0f,0.0f};
-    float  r = 1.0f;
+    float3 c = (float3){4.0f,4.0f,4.0f};
+    float3 r = (float3){1.0f,1.0f,1.0f};
     
-    return sdf_sph(x, c, r);
+    return sdf_cub(x, c, r);
 }
 
 
 //cube
 float geo_g1(float3 x)
 {
-    float3 c = (float3){0.0f,0.0f,0.0f};
-    float3 r = (float3){1.0f,1.0f,1.0f};
+    float3 c = (float3){5.0f,5.0f,5.0f};
+    float3 r = (float3){3.0f,3.0f,3.0f};
 
     return sdf_cub(x, c, r);
 }

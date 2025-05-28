@@ -14,6 +14,7 @@
 
 #include <stdio.h>
 #include <time.h>
+#include <sys/stat.h>
 
 #include "ocl.h"
 #include "msh.h"
@@ -27,6 +28,10 @@ int main(int argc, const char * argv[])
 {
     printf("hello\n");
     
+    //create folders
+    mkdir("/Users/toby/Downloads/raw", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    mkdir("/Users/toby/Downloads/xmf", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    
     /*
      ====================
      init
@@ -39,8 +44,10 @@ int main(int argc, const char * argv[])
     
     //mesh
     struct msh_obj msh;
-    msh.le = (cl_int3){3,3,3};
-    msh.dx = 1.0f; //powf(2e0f, -msh.le.x); //[0,1]ˆ3
+//    msh.x0 = (cl_float3){-1e0f,-1e0f,-1e0f};
+//    msh.x1 = (cl_float3){+1e0f,+1e0f,+1e0f};
+    msh.le = (cl_int3){5,5,5};
+    msh.dx = 10.0f*powf(2e0f, -msh.le.x); //[0,1]ˆ3
     msh.dt = 0.1f;
     msh_ini(&msh);
     
@@ -88,12 +95,11 @@ int main(int argc, const char * argv[])
     //loop
     for(int frm=0; frm<100; frm++)
     {
-//        if((frm % 10)==0)
-//        {
+        if((frm % 10)==0)
+        {
             printf("%03d\n",frm);
-//        }
+        }
     
-        
         //write
         wrt_xmf(&ocl, &msh, frm);
         wrt_flt1(&ocl, &msh, &mg.lvls[0].uu, "uu", frm, msh.ne_tot);
@@ -101,20 +107,19 @@ int main(int argc, const char * argv[])
         wrt_flt1(&ocl, &msh, &mg.lvls[0].rr, "rr", frm, msh.ne_tot);
         wrt_flt1(&ocl, &msh, &mg.lvls[0].gg, "gg", frm, msh.ne_tot);
         
-        
         //rhs
         mg_fwd(&ocl, &mg, &mg.ops[1], &mg.lvls[0]);
         
-//        //jac
-//        mg_jac(&ocl, &mg, &mg.ops[1], &mg.lvls[0]);
-//        
+        //jac
+        mg_jac(&ocl, &mg, &mg.ops[1], &mg.lvls[0]);
+        
 //        //resid
 //        mg_res(&ocl, &mg, &mg.ops[1], &mg.lvls[0]);
 //        
 //        //norms
 //        mg_nrm(&ocl, &mg,  &mg.lvls[0]);
         
-        mg_cyc(&ocl, &mg, &mg.ops[1]);
+//        mg_cyc(&ocl, &mg, &mg.ops[1]);
      
         
     }//frm
