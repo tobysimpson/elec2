@@ -10,7 +10,6 @@
 #include "sdf.h"
 
 
-
 //stimulus
 float geo_g0(float3 x)
 {

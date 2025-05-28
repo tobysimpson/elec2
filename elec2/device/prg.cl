@@ -6,42 +6,9 @@
 //  Copyright © 2024 Toby Simpson. All rights reserved.
 //
 
-
+#include "msh.h"
 #include "utl.h"
 #include "geo.h"
-
-
-/*
- ===================================
- mesh
- ===================================
- */
-
-
-//object
-struct msh_obj
-{
-    int3    le;
-    int3    ne;
-    int3    nv;
-    
-    int     ne_tot;
-    int     nv_tot;
-    
-//    float3  x0;
-//    float3  x1;
-    
-    float   dt;
-    float   dx;
-    float   dx2;
-    float   rdx;
-    float   rdx2;
-    
-    ulong   nv_sz[3];
-    ulong   ne_sz[3];
-    ulong   iv_sz[3];
-    ulong   ie_sz[3];
-};
 
 
 /*
@@ -60,12 +27,12 @@ kernel void ele_ini(const  struct msh_obj  msh,
     int3  ele_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
     int   ele_idx  = utl_idx1(ele_pos, msh.ne);
     
-    float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
+    float3 x = ele_x(ele_pos, msh);
     
     //write
-    uu[ele_idx] = geo_g0(x)<=0e0f;
+    uu[ele_idx] = geo_g1(x)<=0e0f;
     bb[ele_idx] = 0e0f;
-    rr[ele_idx] = 0e1f;
+    rr[ele_idx] = 0e0f;
     gg[ele_idx] = geo_g1(x);
  
     return;
@@ -88,7 +55,7 @@ kernel void ele_fwd0(const  struct msh_obj   msh,
     int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int     ele_idx = utl_idx1(ele_pos, msh.ne);
     
-    float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
+    float3 x = ele_x(ele_pos, msh);
     
     //torso
     if(geo_g1(x)>0e0f)
@@ -128,7 +95,7 @@ kernel void ele_res0(const  struct msh_obj   msh,
     int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int     ele_idx = utl_idx1(ele_pos, msh.ne);
     
-    float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
+    float3 x = ele_x(ele_pos, msh);
     
     //torso
     if(geo_g1(x)>0e0f)
@@ -169,7 +136,7 @@ kernel void ele_jac0(const  struct msh_obj   msh,
     int3  ele_pos  = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int   ele_idx  = utl_idx1(ele_pos, msh.ne);
     
-    float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
+    float3 x = ele_x(ele_pos, msh);
     
     //torso
     if(geo_g1(x)>0e0f)
@@ -220,7 +187,7 @@ kernel void ele_fwd1(const  struct msh_obj   msh,
     int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int     ele_idx = utl_idx1(ele_pos, msh.ne);
     
-    float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
+    float3 x = ele_x(ele_pos, msh);
     
     //heart
     if(geo_g1(x)<=0e0f)
@@ -234,7 +201,8 @@ kernel void ele_fwd1(const  struct msh_obj   msh,
         for(int i=0; i<6; i++)
         {
             int3    adj_pos = ele_pos + off_fac[i];
-            int     adj_bnd = utl_bnd1(adj_pos, msh.ne);
+            float3  adj_x   = ele_x(adj_pos, msh);
+            int     adj_bnd = utl_bnd1(adj_pos, msh.ne)*(geo_g1(adj_x)<=0e0f);
             int     adj_idx = utl_idx1(adj_pos, msh.ne);
             
             if(adj_bnd)
@@ -265,12 +233,11 @@ kernel void ele_res1(const  struct msh_obj   msh,
     int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int     ele_idx = utl_idx1(ele_pos, msh.ne);
     
-    float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
+    float3 x = ele_x(ele_pos, msh);
     
     //heart
     if(geo_g1(x)<=0e0f)
     {
-    
         float u = uu[ele_idx];
         
         float s = 0.0f;
@@ -280,7 +247,8 @@ kernel void ele_res1(const  struct msh_obj   msh,
         for(int i=0; i<6; i++)
         {
             int3    adj_pos = ele_pos + off_fac[i];
-            int     adj_bnd = utl_bnd1(adj_pos, msh.ne);
+            float3  adj_x   = ele_x(adj_pos, msh);
+            int     adj_bnd = utl_bnd1(adj_pos, msh.ne)*(geo_g1(adj_x)<=0e0f);
             int     adj_idx = utl_idx1(adj_pos, msh.ne);
             
             if(adj_bnd)
@@ -312,7 +280,7 @@ kernel void ele_jac1(const  struct msh_obj   msh,
     int3  ele_pos  = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int   ele_idx  = utl_idx1(ele_pos, msh.ne);
     
-    float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
+    float3 x = ele_x(ele_pos, msh);
     
     //heart
     if(geo_g1(x)<=0e0f)
@@ -324,7 +292,8 @@ kernel void ele_jac1(const  struct msh_obj   msh,
         for(int i=0; i<6; i++)
         {
             int3    adj_pos = ele_pos + off_fac[i];
-            int     adj_bnd = utl_bnd1(adj_pos, msh.ne);
+            float3  adj_x   = ele_x(adj_pos, msh);
+            int     adj_bnd = utl_bnd1(adj_pos, msh.ne)*(geo_g1(adj_x)<=0e0f);
             int     adj_idx = utl_idx1(adj_pos, msh.ne);
             
             if(adj_bnd)

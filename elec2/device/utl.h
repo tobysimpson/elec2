@@ -9,13 +9,7 @@
 #ifndef utl_h
 #define utl_h
 
-
-
-/*
- ===================================
- constants
- ===================================
- */
+#include "msh.h"
 
 
 //util
@@ -28,6 +22,13 @@ constant int3       off_vtx[8]  = {{0,0,0},{1,0,0},{0,1,0},{1,1,0},{0,0,1},{1,0,
  util
  ===================================
  */
+
+//coord
+float3 ele_x(int3 ele_pos, struct msh_obj msh)
+{
+    return msh.dx*(convert_float3(ele_pos) + 0.5f);
+}
+
 
 //global index
 int utl_idx1(int3 pos, int3 dim)
