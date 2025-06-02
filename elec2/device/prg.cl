@@ -12,6 +12,12 @@
 #include "ion.h"
 
 
+//monodomain
+constant float MD_SIG_H     = 0.01f;          //heart conductivity (mS mm^-1) = muA mV^-1 mm^-1
+constant float MD_SIG_T     = 0.50f;          //torso
+
+
+
 /*
  ===================================
  ini
@@ -77,7 +83,7 @@ kernel void ele_fwd0(const  struct msh_obj   msh,
         }
         
         //fwd
-        bb[ele_idx] = msh.rdx2*s;
+        bb[ele_idx] = MD_SIG_T*msh.rdx2*s;
     }
     
     return;
@@ -115,7 +121,7 @@ kernel void ele_res0(const  struct msh_obj   msh,
         }
         
         //fwd
-        float Au = msh.rdx2*s;
+        float Au = MD_SIG_T*msh.rdx2*s;
         
         //res
         rr[ele_idx] = bb[ele_idx] - Au;
@@ -156,7 +162,7 @@ kernel void ele_jac0(const  struct msh_obj   msh,
         }
         
         //fwd
-        float Au = msh.rdx2*s;
+        float Au = MD_SIG_T*msh.rdx2*s;
         
         //res
         float r = bb[ele_idx] - Au;

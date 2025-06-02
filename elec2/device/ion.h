@@ -21,11 +21,6 @@ constant float MS_TAU_OPEN  = 120.0f;       //milliseconds
 constant float MS_TAU_CLOSE = 100.0f;       //90 endocardium to 130 epi - longer
 
 
-//conductivity
-constant float MD_SIG_H     = 0.1f;          //conductivity (mS mm^-1) = muA mV^-1 mm^-1
-constant float MD_SIG_T     = 0.5f;
-
-
 //mitchell-schaffer
 kernel void ele_ion(const  struct msh_obj  msh,
                     global float           *uu,
