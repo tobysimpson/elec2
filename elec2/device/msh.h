@@ -18,10 +18,7 @@ struct msh_obj
     
     int     ne_tot;
     int     nv_tot;
-    
-//    float3  x0;
-//    float3  x1;
-    
+
     float   dt;
     float   dx;
     float   dx2;

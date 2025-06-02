@@ -6,6 +6,8 @@
 //  Copyright © 2024 Toby Simpson. All rights reserved.
 //
 
+#ifndef geo_h
+#define geo_h
 
 #include "sdf.h"
 
@@ -57,3 +59,5 @@ float geo_h0(float3 x)
     return s1;
 }
 
+
+#endif

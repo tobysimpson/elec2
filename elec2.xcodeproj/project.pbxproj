@@ -26,8 +26,6 @@
 		DA4CFAF02D39047300EFDCF6 /* Exceptions for "elec2" folder in "elec2" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				device/ops1.cl,
-				device/ops2.cl,
 				device/prg.cl,
 			);
 			target = DA17ABA72CC65EAB00CFAD5C /* elec2 */;

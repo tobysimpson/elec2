@@ -9,6 +9,7 @@
 #include "msh.h"
 #include "utl.h"
 #include "geo.h"
+#include "ion.h"
 
 
 /*
@@ -30,7 +31,7 @@ kernel void ele_ini(const  struct msh_obj  msh,
     float3 x = ele_x(ele_pos, msh);
     
     //write
-    uu[ele_idx] = geo_g0(x)<=0e0f;
+    uu[ele_idx] = 0.5f*geo_g0(x)<=0e0f;
     bb[ele_idx] = 0e0f;
     rr[ele_idx] = 0e0f;
     gg[ele_idx] = geo_g1(x);
@@ -209,7 +210,7 @@ kernel void ele_fwd1(const  struct msh_obj   msh,
         }
         
         //constants
-        float alp = msh.dt*msh.rdx2;
+        float alp = MD_SIG_H*msh.dt*msh.rdx2;
         
         //rhs
         bb[ele_idx] = u + 0.5f*alp*(s + d*u);
@@ -255,7 +256,7 @@ kernel void ele_res1(const  struct msh_obj   msh,
         }
         
         //constants
-        float alp = msh.dt*msh.rdx2;
+        float alp = MD_SIG_H*msh.dt*msh.rdx2;
         
         //lhs
         float Au = u - 0.5f*alp*(s + d*u);
@@ -300,7 +301,7 @@ kernel void ele_jac1(const  struct msh_obj   msh,
         }
         
         //constants
-        float alp = msh.dt*msh.rdx2;
+        float alp = MD_SIG_H*msh.dt*msh.rdx2;
         
         //ie
         uu[ele_idx] = (bb[ele_idx] + 0.5f*alp*s)/(1e0f - 0.5f*alp*d);

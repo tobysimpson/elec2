@@ -7,6 +7,9 @@
 //
 
 
+#ifndef sdf_h
+#define sdf_h
+
 //cuboid
 float sdf_cub(float3 x, float3 c, float3 r)
 {
@@ -40,3 +43,6 @@ float sdf_cyl(float3 x, float3 c, float r, float h)
 {
     return max(length(x.xy - c.xy) - r, fabs(x.z - c.z) - h);
 }
+
+
+#endif
