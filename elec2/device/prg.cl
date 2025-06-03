@@ -12,10 +12,10 @@
 #include "ion.h"
 
 
-//monodomain
-constant float MD_SIG_H     = 0.01f;          //heart conductivity (mS mm^-1) = muA mV^-1 mm^-1
-constant float MD_SIG_T     = 0.50f;          //torso
 
+//monodomain
+constant float MD_SIG_H = 1e-1f;          //heart conductivity (mS mm^-1) = muA mV^-1 mm^-1
+constant float MD_SIG_T = 1e-0f;          //torso
 
 
 /*

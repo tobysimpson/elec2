@@ -15,7 +15,7 @@
 //stimulus
 float geo_g0(float3 x)
 {
-    float3 c = (float3){4.0f,4.0f,4.0f};
+    float3 c = (float3){30.0f,30.0f,70.0f};
     float3 r = (float3){1.0f,1.0f,1.0f};
     
     return sdf_cub(x, c, r);
@@ -25,11 +25,25 @@ float geo_g0(float3 x)
 //cube
 float geo_g1(float3 x)
 {
+    float g1 = sdf_sph(x, (float3){60.0f,60.0f,40.0f}, 20.0f);
+    float g2 = sdf_cub(x, (float3){40.0f,40.0f,60.0f}, (float3){20.0f,20.0f,20.0f});
+    
+    return min(g1,g2);
+}
+
+
+/*
+ 
+//cube
+float geo_g1(float3 x)
+{
     float3 c = (float3){5.0f,5.0f,5.0f};
     float3 r = (float3){3.0f,3.0f,3.0f};
 
     return sdf_cub(x, c, r);
 }
+ 
+ */
 
 //epicardium
 float geo_e0(float3 x)

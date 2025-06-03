@@ -46,16 +46,16 @@ int main(int argc, const char * argv[])
     struct msh_obj msh;
 //    msh.x0 = (cl_float3){-1e0f,-1e0f,-1e0f};
 //    msh.x1 = (cl_float3){+1e0f,+1e0f,+1e0f};
-    msh.le = (cl_int3){5,5,5};
-    msh.dx = 10.0f*powf(2e0f, -msh.le.x); //[0,1]ˆ3
+    msh.le = (cl_int3){7,7,7};
+    msh.dx = 100.0f*powf(2e0f, -msh.le.x);
     msh.dt = 0.5f;
     msh_ini(&msh);
     
     //multigrid
     struct mg_obj mg;
-    mg.nl = msh.le.x/2; //limit for geom
-    mg.nj = 10;
-    mg.nc = 10;
+    mg.nl = 2; //msh.le.x/2; //limit for geom
+    mg.nj = 5;
+    mg.nc = 5;
     mg_ini(&ocl, &mg, &msh);
     
     /*
@@ -96,15 +96,6 @@ int main(int argc, const char * argv[])
         
         //init
         ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, mg.ele_ini, 3, NULL, msh.ne_sz, NULL, 0, NULL, &ocl.event);
-        
-        //cn rhs
-//        mg_fwd(&ocl, &mg, &mg.ops[1], lvl);
-        
-        //jac
-//        mg_jac(&ocl, &mg, &mg.ops[0], lvl);
-        
-        //norms
-//        mg_nrm(&ocl, &mg, lvl);
         
     }
     
