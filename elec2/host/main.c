@@ -53,7 +53,7 @@ int main(int argc, const char * argv[])
     
     //multigrid
     struct mg_obj mg;
-    mg.nl = 2; //msh.le.x/2; //limit for geom
+    mg.nl = 3; //msh.le.x/2; //limit for geom
     mg.nj = 5;
     mg.nc = 5;
     mg_ini(&ocl, &mg, &msh);
