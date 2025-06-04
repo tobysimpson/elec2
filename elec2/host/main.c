@@ -64,8 +64,18 @@ int main(int argc, const char * argv[])
      ====================
      */
     
+    //spheres
+    int ns = 100;
+    cl_float4 ss_hst[ns];
+    srand((unsigned int)time(NULL));
+    for(int i=0; i<ns; i++)
+    {
+        ss_hst[i] = (cl_float4){1.0f+rand()%100, 1.0f+rand()%100, 1.0f+rand()%100, 1.0f+rand()%10};
+    }
+    
     //memory
-    cl_mem ww = clCreateBuffer(ocl.context, CL_MEM_HOST_READ_ONLY, msh.nv_tot*sizeof(cl_float4), NULL, &ocl.err);
+    cl_mem ww = clCreateBuffer(ocl.context, CL_MEM_HOST_NO_ACCESS , msh.nv_tot*sizeof(cl_float4), NULL, &ocl.err);
+    cl_mem ss = clCreateBuffer(ocl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, ns*sizeof(cl_float4), ss_hst, NULL);
     
     //kernel
     cl_kernel ele_ion = clCreateKernel(ocl.program, "ele_ion", &ocl.err);
@@ -74,12 +84,24 @@ int main(int argc, const char * argv[])
     ocl.err = clSetKernelArg(ele_ion,  0, sizeof(struct msh_obj),    (void*)&msh);
     ocl.err = clSetKernelArg(ele_ion,  1, sizeof(cl_mem),            (void*)&mg.lvls[0].uu);
     ocl.err = clSetKernelArg(ele_ion,  2, sizeof(cl_mem),            (void*)&ww);
+    ocl.err = clSetKernelArg(ele_ion,  3, sizeof(cl_mem),            (void*)&mg.lvls[0].gg);
     
     //pattern for reset
     cl_float ptn = 1e0f;
     
     //reset
     ocl.err = clEnqueueFillBuffer(ocl.command_queue, ww, &ptn, sizeof(ptn), 0, msh.ne_tot*sizeof(ptn), 0, NULL, &ocl.event);
+    
+    
+    //spheres
+
+    for(int i=0; i<ns; i++)
+    {
+//        ss[i] = (cl_float4){1.0f+rand()%100, 1.0f+rand()%100, 1.0f+rand()%100, 1.0f+rand()%10};
+        
+//        printf("{%4.1ff,%4.1ff,%4.1ff,%4.1ff}", 1.0f+rand()%100, 1.0f+rand()%100, 1.0f+rand()%100, 1.0f+rand()%10);
+//        if(i<(ns-1)){printf(",\n");}
+    }
     
     //levels
     for(int l=0; l<1; l++)//mg.nl
@@ -93,10 +115,10 @@ int main(int argc, const char * argv[])
         ocl.err = clSetKernelArg(mg.ele_ini,  2, sizeof(cl_mem),            (void*)&lvl->bb);
         ocl.err = clSetKernelArg(mg.ele_ini,  3, sizeof(cl_mem),            (void*)&lvl->rr);
         ocl.err = clSetKernelArg(mg.ele_ini,  4, sizeof(cl_mem),            (void*)&lvl->gg);
+        ocl.err = clSetKernelArg(mg.ele_ini,  5, sizeof(cl_mem),            (void*)&ss);
         
         //init
         ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, mg.ele_ini, 3, NULL, msh.ne_sz, NULL, 0, NULL, &ocl.event);
-        
     }
     
     
@@ -131,7 +153,7 @@ int main(int argc, const char * argv[])
         }
 
         //ecg mg
-        mg_cyc(&ocl, &mg, &mg.ops[0]);
+//        mg_cyc(&ocl, &mg, &mg.ops[0]);
      
     }//frm
     

@@ -8,14 +8,53 @@
 
 #include "msh.h"
 #include "utl.h"
+#include "sdf.h"
 #include "geo.h"
-#include "ion.h"
 
 
+/*
+ ===================================
+ ion
+ ===================================
+ */
 
 //monodomain
-constant float MD_SIG_H = 1e-1f;          //heart conductivity (mS mm^-1) = muA mV^-1 mm^-1
-constant float MD_SIG_T = 1e-0f;          //torso
+constant float MD_SIG_H     = 1e-1f;        //heart conductivity (mS mm^-1) = muA mV^-1 mm^-1
+constant float MD_SIG_T     = 1e-0f;        //torso
+
+//mitchell-schaffer
+constant float MS_V_GATE    = 0.13f;        //dimensionless (13 in the paper 15 for N?)
+constant float MS_TAU_IN    = 0.3f;         //milliseconds
+constant float MS_TAU_OUT   = 6.0f;         //should be 6.0
+constant float MS_TAU_OPEN  = 120.0f;       //milliseconds
+constant float MS_TAU_CLOSE = 100.0f;       //90 endocardium to 130 epi - longer
+
+
+//mitchell-schaffer
+kernel void ele_ion(const  struct msh_obj  msh,
+                    global float           *uu,
+                    global float           *ww,
+                    global float           *gg)
+{
+    int3 ele_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
+    int  ele_idx  = utl_idx1(ele_pos, msh.ne);
+
+    float u = uu[ele_idx];
+    float w = ww[ele_idx];
+    
+    //mitchell-schaffer
+    float du = (w*u*u*(1.0f-u)/MS_TAU_IN) - (u/MS_TAU_OUT);                   //ms dimensionless J_in, J_out, J_stim
+    float dw = (u<MS_V_GATE)?((1.0f - w)/MS_TAU_OPEN):(-w)/MS_TAU_CLOSE;      //gating variable
+
+    //geom
+    int g = gg[ele_idx]<=0e0f;
+    
+    //store
+    uu[ele_idx] += (g)?msh.dt*du:0e0f;
+    ww[ele_idx] += (g)?msh.dt*dw:0e0f;
+
+    return;
+}
 
 
 /*
@@ -24,28 +63,34 @@ constant float MD_SIG_T = 1e-0f;          //torso
  ===================================
  */
 
-
 kernel void ele_ini(const  struct msh_obj  msh,
                     global float           *uu,
                     global float           *bb,
                     global float           *rr,
-                    global float           *gg)
+                    global float           *gg,
+                    global float4          *ss)
 {
     int3  ele_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
     int   ele_idx  = utl_idx1(ele_pos, msh.ne);
     
     float3 x = ele_x(ele_pos, msh);
     
+    float g = 1.0f;
+    
+    //spheres
+    for(int i=0; i<100; i++)
+    {
+        g = sdf_smin(g , sdf_sph(x, ss[i].xyz, ss[i].w), 2.0f);
+    }
+    
     //write
-    uu[ele_idx] = 0.5f*geo_g0(x)<=0e0f;
+    uu[ele_idx] = ele_pos.z==(msh.ne.z-1);
     bb[ele_idx] = 0e0f;
     rr[ele_idx] = 0e0f;
-    gg[ele_idx] = geo_g1(x);
+    gg[ele_idx] = g;
  
     return;
 }
-
-
 
 /*
  ============================
@@ -184,16 +229,15 @@ kernel void ele_jac0(const  struct msh_obj   msh,
 
 //rhs crank
 kernel void ele_fwd1(const  struct msh_obj   msh,
-                    global float            *uu,
-                    global float            *bb)
+                     global float            *uu,
+                     global float            *bb,
+                     global float            *gg)
 {
     int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int     ele_idx = utl_idx1(ele_pos, msh.ne);
     
-    float3 x = ele_x(ele_pos, msh);
-    
     //heart
-    if(geo_g1(x)<=0e0f)
+    if(gg[ele_idx]<=0e0f)
     {
         float u = uu[ele_idx];
         
@@ -204,9 +248,9 @@ kernel void ele_fwd1(const  struct msh_obj   msh,
         for(int i=0; i<6; i++)
         {
             int3    adj_pos = ele_pos + off_fac[i];
-            float3  adj_x   = ele_x(adj_pos, msh);
-            int     adj_bnd = utl_bnd1(adj_pos, msh.ne)*(geo_g1(adj_x)<=0e0f);
             int     adj_idx = utl_idx1(adj_pos, msh.ne);
+            int     adj_bnd = utl_bnd1(adj_pos, msh.ne)*(gg[adj_idx]<=0e0f);
+            
             
             if(adj_bnd)
             {
@@ -229,17 +273,16 @@ kernel void ele_fwd1(const  struct msh_obj   msh,
 
 //residual crank
 kernel void ele_res1(const  struct msh_obj   msh,
-                    global float            *uu,
-                    global float            *bb,
-                    global float            *rr)
+                     global float            *uu,
+                     global float            *bb,
+                     global float            *rr,
+                     global float            *gg)
 {
     int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int     ele_idx = utl_idx1(ele_pos, msh.ne);
     
-    float3 x = ele_x(ele_pos, msh);
-    
     //heart
-    if(geo_g1(x)<=0e0f)
+    if(gg[ele_idx]<=0e0f)
     {
         float u = uu[ele_idx];
         
@@ -250,9 +293,8 @@ kernel void ele_res1(const  struct msh_obj   msh,
         for(int i=0; i<6; i++)
         {
             int3    adj_pos = ele_pos + off_fac[i];
-            float3  adj_x   = ele_x(adj_pos, msh);
-            int     adj_bnd = utl_bnd1(adj_pos, msh.ne)*(geo_g1(adj_x)<=0e0f);
             int     adj_idx = utl_idx1(adj_pos, msh.ne);
+            int     adj_bnd = utl_bnd1(adj_pos, msh.ne)*(gg[adj_idx]<=0e0f);
             
             if(adj_bnd)
             {
@@ -277,16 +319,15 @@ kernel void ele_res1(const  struct msh_obj   msh,
 
 //jacobi crank
 kernel void ele_jac1(const  struct msh_obj   msh,
-                    global float            *uu,
-                    global float            *bb)
+                     global float            *uu,
+                     global float            *bb,
+                     global float            *gg)
 {
     int3  ele_pos  = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int   ele_idx  = utl_idx1(ele_pos, msh.ne);
     
-    float3 x = ele_x(ele_pos, msh);
-    
     //heart
-    if(geo_g1(x)<=0e0f)
+    if(gg[ele_idx]<=0e0f)
     {
         float s = 0.0f;
         float d = 0.0f;
@@ -295,9 +336,8 @@ kernel void ele_jac1(const  struct msh_obj   msh,
         for(int i=0; i<6; i++)
         {
             int3    adj_pos = ele_pos + off_fac[i];
-            float3  adj_x   = ele_x(adj_pos, msh);
-            int     adj_bnd = utl_bnd1(adj_pos, msh.ne)*(geo_g1(adj_x)<=0e0f);
             int     adj_idx = utl_idx1(adj_pos, msh.ne);
+            int     adj_bnd = utl_bnd1(adj_pos, msh.ne)*(gg[adj_idx]<=0e0f);
             
             if(adj_bnd)
             {

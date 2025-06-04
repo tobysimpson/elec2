@@ -12,6 +12,7 @@
 #include "sdf.h"
 
 
+
 //stimulus
 float geo_g0(float3 x)
 {
@@ -22,14 +23,36 @@ float geo_g0(float3 x)
 }
 
 
-//cube
+//solid
 float geo_g1(float3 x)
 {
-    float g1 = sdf_sph(x, (float3){60.0f,60.0f,40.0f}, 20.0f);
-    float g2 = sdf_cub(x, (float3){40.0f,40.0f,60.0f}, (float3){20.0f,20.0f,20.0f});
+    int n = 10;
     
-    return min(g1,g2);
+    float g = 1.0f;
+    
+    for(int i=0; i<n; i++)
+    {
+        float c = i*10.0f;
+        
+        float s = sdf_sph(x, (float3){c,c,c}, 5.0f);
+        
+//        g = sdf_smin(g, s, 5.0f);
+        g = fmin(g,s);
+    }
+    
+    return g;
 }
+
+
+////cube+sphere
+//float geo_g1(float3 x)
+//{
+//    float g1 = sdf_sph(x, (float3){60.0f,60.0f,40.0f}, 20.0f);
+//    float g2 = sdf_cub(x, (float3){40.0f,40.0f,60.0f}, (float3){20.0f,20.0f,20.0f});
+//    
+//    //return min(g1,g2);
+//    return sdf_smin(g1, g2, 5.0f);
+//}
 
 
 /*

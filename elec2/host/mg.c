@@ -73,6 +73,7 @@ void mg_fwd(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, struct lv
     ocl->err = clSetKernelArg(op->ele_fwd,  0, sizeof(struct msh_obj),    (void*)&lvl->msh);
     ocl->err = clSetKernelArg(op->ele_fwd,  1, sizeof(cl_mem),            (void*)&lvl->uu);
     ocl->err = clSetKernelArg(op->ele_fwd,  2, sizeof(cl_mem),            (void*)&lvl->bb);
+    ocl->err = clSetKernelArg(op->ele_fwd,  3, sizeof(cl_mem),            (void*)&lvl->gg);
     
     //fwd
     ocl->err = clEnqueueNDRangeKernel(ocl->command_queue, op->ele_fwd, 3, NULL, lvl->msh.ne_sz, NULL, 0, NULL, &ocl->event);
@@ -87,6 +88,7 @@ void mg_jac(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, struct lv
     ocl->err = clSetKernelArg(op->ele_jac,  0, sizeof(struct msh_obj),    (void*)&lvl->msh);
     ocl->err = clSetKernelArg(op->ele_jac,  1, sizeof(cl_mem),            (void*)&lvl->uu);
     ocl->err = clSetKernelArg(op->ele_jac,  2, sizeof(cl_mem),            (void*)&lvl->bb);
+    ocl->err = clSetKernelArg(op->ele_jac,  3, sizeof(cl_mem),            (void*)&lvl->gg);
     
     //smooth
     for(int j=0; j<mg->nj; j++)
@@ -106,6 +108,7 @@ void mg_res(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, struct lv
     ocl->err = clSetKernelArg(op->ele_res,  1, sizeof(cl_mem),            (void*)&lvl->uu);
     ocl->err = clSetKernelArg(op->ele_res,  2, sizeof(cl_mem),            (void*)&lvl->bb);
     ocl->err = clSetKernelArg(op->ele_res,  3, sizeof(cl_mem),            (void*)&lvl->rr);
+    ocl->err = clSetKernelArg(op->ele_res,  4, sizeof(cl_mem),            (void*)&lvl->gg);
     
     //residual
     ocl->err = clEnqueueNDRangeKernel(ocl->command_queue, op->ele_res, 3, NULL, lvl->msh.ne_sz, NULL, 0, NULL, NULL);

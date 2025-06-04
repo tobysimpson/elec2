@@ -10,6 +10,17 @@
 #ifndef sdf_h
 #define sdf_h
 
+
+
+//smoothed minimum quadratic
+float sdf_smin(float a, float b, float k)
+{
+    k *= 4.0;
+    float h = fmax(k-fabs(a-b), 0.0)/k;
+    return fmin(a,b) - 0.25f*h*h*k;
+}
+
+
 //cuboid
 float sdf_cub(float3 x, float3 c, float3 r)
 {
@@ -43,6 +54,10 @@ float sdf_cyl(float3 x, float3 c, float r, float h)
 {
     return max(length(x.xy - c.xy) - r, fabs(x.z - c.z) - h);
 }
+
+
+
+
 
 
 #endif
