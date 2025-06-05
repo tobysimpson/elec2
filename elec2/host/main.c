@@ -65,12 +65,12 @@ int main(int argc, const char * argv[])
      */
     
     //spheres
-    int ns = 100;
+    int ns = 200;
     cl_float4 ss_hst[ns];
     srand((unsigned int)time(NULL));
     for(int i=0; i<ns; i++)
     {
-        ss_hst[i] = (cl_float4){1.0f+rand()%100, 1.0f+rand()%100, 1.0f+rand()%100, 1.0f+rand()%10};
+        ss_hst[i] = (cl_float4){10.0f+rand()%80, 10.0f+rand()%80, 10.0f+rand()%80, 1.0f};
     }
     
     //memory
@@ -91,17 +91,6 @@ int main(int argc, const char * argv[])
     
     //reset
     ocl.err = clEnqueueFillBuffer(ocl.command_queue, ww, &ptn, sizeof(ptn), 0, msh.ne_tot*sizeof(ptn), 0, NULL, &ocl.event);
-    
-    
-    //spheres
-
-    for(int i=0; i<ns; i++)
-    {
-//        ss[i] = (cl_float4){1.0f+rand()%100, 1.0f+rand()%100, 1.0f+rand()%100, 1.0f+rand()%10};
-        
-//        printf("{%4.1ff,%4.1ff,%4.1ff,%4.1ff}", 1.0f+rand()%100, 1.0f+rand()%100, 1.0f+rand()%100, 1.0f+rand()%10);
-//        if(i<(ns-1)){printf(",\n");}
-    }
     
     //levels
     for(int l=0; l<1; l++)//mg.nl
@@ -140,7 +129,7 @@ int main(int argc, const char * argv[])
     
         
         //time per frame
-        for(int t=0; t<10; t++)
+        for(int t=0; t<20; t++)
         {
             //cn rhs
             mg_fwd(&ocl, &mg, &mg.ops[1], &mg.lvls[0]);
@@ -153,7 +142,7 @@ int main(int argc, const char * argv[])
         }
 
         //ecg mg
-//        mg_cyc(&ocl, &mg, &mg.ops[0]);
+        mg_cyc(&ocl, &mg, &mg.ops[0]);
      
     }//frm
     

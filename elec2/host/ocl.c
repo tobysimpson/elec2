@@ -27,7 +27,7 @@ void ocl_ini(struct ocl_obj *ocl)
     ocl->err            = clGetDeviceInfo(ocl->device_id, CL_DEVICE_MAX_WORK_ITEM_SIZES, 24, &ocl->device_num, NULL);                 //device info CL_DEVICE_MAX_MEM_ALLOC_SIZE, CL_DEVICE_MAX_WORK_GROUP_SIZE, CL_DEVICE_MAX_WORK_ITEM_SIZES
 
     printf("%s\n", ocl->device_str);
-    printf("%zu,%zu,%zu\n", ocl->device_num[0], ocl->device_num[1], ocl->device_num[2]);
+//    printf("%zu,%zu,%zu\n", ocl->device_num[0], ocl->device_num[1], ocl->device_num[2]);
 
     /*
      =============================

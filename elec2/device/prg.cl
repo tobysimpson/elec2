@@ -57,6 +57,7 @@ kernel void ele_ion(const  struct msh_obj  msh,
 }
 
 
+
 /*
  ===================================
  ini
@@ -78,13 +79,13 @@ kernel void ele_ini(const  struct msh_obj  msh,
     float g = 1.0f;
     
     //spheres
-    for(int i=0; i<100; i++)
+    for(int i=0; i<200; i++)
     {
-        g = sdf_smin(g , sdf_sph(x, ss[i].xyz, ss[i].w), 2.0f);
+        g = sdf_smin(g , sdf_sph(x, ss[i].xyz, ss[i].w), 2.5f);
     }
     
     //write
-    uu[ele_idx] = ele_pos.z==(msh.ne.z-1);
+    uu[ele_idx] = x.z>=90.0f;
     bb[ele_idx] = 0e0f;
     rr[ele_idx] = 0e0f;
     gg[ele_idx] = g;
@@ -101,16 +102,15 @@ kernel void ele_ini(const  struct msh_obj  msh,
 
 //forward
 kernel void ele_fwd0(const  struct msh_obj   msh,
-                    global float            *uu,
-                    global float            *bb)
+                     global float            *uu,
+                     global float            *bb,
+                     global float            *gg)
 {
     int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int     ele_idx = utl_idx1(ele_pos, msh.ne);
     
-    float3 x = ele_x(ele_pos, msh);
-    
     //torso
-    if(geo_g1(x)>0e0f)
+    if(gg[ele_idx]>0e0f)
     {
         float s = 0.0f;
 
@@ -118,7 +118,7 @@ kernel void ele_fwd0(const  struct msh_obj   msh,
         for(int i=0; i<6; i++)
         {
             int3    adj_pos = ele_pos + off_fac[i];
-            int     adj_bnd = utl_bnd1(adj_pos, msh.ne);//zero neuman on domain
+            int     adj_bnd = utl_bnd1(adj_pos, msh.ne);//zero neuman on domain, dirichlet on heart
             int     adj_idx = utl_idx1(adj_pos, msh.ne);
             
             if(adj_bnd)
@@ -138,17 +138,16 @@ kernel void ele_fwd0(const  struct msh_obj   msh,
 
 //residual
 kernel void ele_res0(const  struct msh_obj   msh,
-                    global float            *uu,
-                    global float            *bb,
-                    global float            *rr)
+                     global float            *uu,
+                     global float            *bb,
+                     global float            *rr,
+                     global float            *gg)
 {
     int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int     ele_idx = utl_idx1(ele_pos, msh.ne);
     
-    float3 x = ele_x(ele_pos, msh);
-    
     //torso
-    if(geo_g1(x)>0e0f)
+    if(gg[ele_idx]>0e0f)
     {
         float s = 0.0f;
         
@@ -156,7 +155,7 @@ kernel void ele_res0(const  struct msh_obj   msh,
         for(int i=0; i<6; i++)
         {
             int3    adj_pos = ele_pos + off_fac[i];
-            int     adj_bnd = utl_bnd1(adj_pos, msh.ne); //zero neumann on domain
+            int     adj_bnd = utl_bnd1(adj_pos, msh.ne); //zero neuman on domain, dirichlet on heart
             int     adj_idx = utl_idx1(adj_pos, msh.ne);
             
             if(adj_bnd)
@@ -178,16 +177,15 @@ kernel void ele_res0(const  struct msh_obj   msh,
 
 //jacobi
 kernel void ele_jac0(const  struct msh_obj   msh,
-                    global float            *uu,
-                    global float            *bb)
+                     global float            *uu,
+                     global float            *bb,
+                     global float            *gg)
 {
     int3  ele_pos  = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int   ele_idx  = utl_idx1(ele_pos, msh.ne);
-    
-    float3 x = ele_x(ele_pos, msh);
-    
+
     //torso
-    if(geo_g1(x)>0e0f)
+    if(gg[ele_idx]>0e0f)
     {
         float s = 0.0f;
         float d = 0.0f;
@@ -196,7 +194,7 @@ kernel void ele_jac0(const  struct msh_obj   msh,
         for(int i=0; i<6; i++)
         {
             int3    adj_pos = ele_pos + off_fac[i];
-            int     adj_bnd = utl_bnd1(adj_pos, msh.ne); //zero neumann on domain
+            int     adj_bnd = utl_bnd1(adj_pos, msh.ne); //zero neuman on domain, dirichlet on heart
             int     adj_idx = utl_idx1(adj_pos, msh.ne);
             
             if(adj_bnd)
