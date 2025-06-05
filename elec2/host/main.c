@@ -46,7 +46,7 @@ int main(int argc, const char * argv[])
     struct msh_obj msh;
 //    msh.x0 = (cl_float3){-1e0f,-1e0f,-1e0f};
 //    msh.x1 = (cl_float3){+1e0f,+1e0f,+1e0f};
-    msh.le = (cl_int3){7,7,7};
+    msh.le = (cl_int3){8,8,8};
     msh.dx = 100.0f*powf(2e0f, -msh.le.x);
     msh.dt = 0.5f;
     msh_ini(&msh);
@@ -129,7 +129,7 @@ int main(int argc, const char * argv[])
     
         
         //time per frame
-        for(int t=0; t<20; t++)
+        for(int t=0; t<10; t++)
         {
             //cn rhs
             mg_fwd(&ocl, &mg, &mg.ops[1], &mg.lvls[0]);

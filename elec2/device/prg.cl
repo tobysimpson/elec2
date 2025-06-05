@@ -85,7 +85,7 @@ kernel void ele_ini(const  struct msh_obj  msh,
     }
     
     //write
-    uu[ele_idx] = x.z>=90.0f;
+    uu[ele_idx] = x.x<10.0f;
     bb[ele_idx] = 0e0f;
     rr[ele_idx] = 0e0f;
     gg[ele_idx] = g;
