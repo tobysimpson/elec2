@@ -18,17 +18,12 @@
  ===================================
  */
 
+//stencils
 constant int3 off_fac[6]  = {{-1,0,0},{+1,0,0},{0,-1,0},{0,+1,0},{0,0,-1},{0,0,+1}};
 constant int3 off_vtx[8]  = {{0,0,0},{1,0,0},{0,1,0},{1,1,0},{0,0,1},{1,0,1},{0,1,1},{1,1,1}};
 
-/*
- ===================================
- ion
- ===================================
- */
-
 //monodomain
-constant float MD_SIG_H     = 2e-1f;        //heart conductivity (mS mm^-1) = muA mV^-1 mm^-1
+constant float MD_SIG_H     = 3e-1f;        //heart conductivity (mS mm^-1) = muA mV^-1 mm^-1
 constant float MD_SIG_T     = 1e-0f;        //torso
 
 //mitchell-schaffer
@@ -38,6 +33,64 @@ constant float MS_TAU_OUT   = 6.0f;         //should be 6.0
 constant float MS_TAU_OPEN  = 120.0f;       //milliseconds
 constant float MS_TAU_CLOSE = 100.0f;       //90 endocardium to 130 epi - longer
 
+
+/*
+ ===================================
+ ini
+ ===================================
+ */
+
+kernel void ele_ini(const  struct msh_obj  msh,
+                    global float           *uu,
+                    global float           *ww,
+                    global float           *gg)
+{
+    int3  ele_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
+    int   ele_idx  = utl_idx1(ele_pos, msh.ne);
+    
+    float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
+        
+    //write
+    uu[ele_idx] = (float)((x.x<10)*(gg[ele_idx]<=0e0f));
+    ww[ele_idx] = 1e0f;
+    
+    return;
+}
+
+
+kernel void ele_geo(const  struct msh_obj  msh,
+                    global float           *gg,
+                    global float4          *ss)
+{
+    int3  ele_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
+    int   ele_idx  = utl_idx1(ele_pos, msh.ne);
+    
+    float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
+    
+    //geom
+    float g = 1;
+  
+    //sdf
+//    float g = sdf_cub(x,(float3){50.0f,50.0f,25.0f}, (float3){25.0f,25.0f,25.0f});
+    
+    //spheres
+    for(int i=0; i<200; i++)
+    {
+        g = sdf_smin(g , sdf_sph(x, ss[i].xyz, ss[i].w), 2.5f);
+    }
+    
+    //write
+    gg[ele_idx] = g;
+    
+    return;
+}
+
+
+/*
+ ===================================
+ ion
+ ===================================
+ */
 
 //mitchell-schaffer
 kernel void ele_ion(const  struct msh_obj  msh,
@@ -65,54 +118,7 @@ kernel void ele_ion(const  struct msh_obj  msh,
     return;
 }
 
-/*
- ===================================
- ini
- ===================================
- */
 
-kernel void ele_ini(const  struct msh_obj  msh,
-                    global float           *uu,
-                    global float           *ww,
-                    global float           *gg)
-{
-    int3  ele_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
-    int   ele_idx  = utl_idx1(ele_pos, msh.ne);
-        
-    //write
-    uu[ele_idx] = (float)((ele_pos.z==(msh.ne.z-1))*(gg[ele_idx]<=0e0f));
-    ww[ele_idx] = 1e0f;
-    
-    return;
-}
-
-
-kernel void ele_geo(const  struct msh_obj  msh,
-                    global float           *gg,
-                    global float4          *ss)
-{
-    int3  ele_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
-    int   ele_idx  = utl_idx1(ele_pos, msh.ne);
-    
-    float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
-    
-    //geom
-    float g = 1;
-  
-    //sdf
-//    float g = sdf_cub(x,(float3){50.0f,50.0f,25.0f}, (float3){25.0f,25.0f,25.0f});
-    
-    //spheres
-    for(int i=0; i<200; i++)
-    {
-        g = sdf_smin(g , sdf_sph(x, ss[i].xyz, ss[i].w), 3.0f);
-    }
-    
-    //write
-    gg[ele_idx] = g;
-    
-    return;
-}
 
 /*
  ============================

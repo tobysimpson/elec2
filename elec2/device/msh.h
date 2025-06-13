@@ -27,8 +27,8 @@ struct msh_obj
     
     ulong   nv_sz[3];
     ulong   ne_sz[3];
-    ulong   iv_sz[3];
-    ulong   ie_sz[3];
+//    ulong   iv_sz[3];
+//    ulong   ie_sz[3];
 };
 
 

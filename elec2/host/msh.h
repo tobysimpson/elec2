@@ -33,8 +33,8 @@ struct msh_obj
     
     size_t      nv_sz[3];
     size_t      ne_sz[3];
-    size_t      iv_sz[3];
-    size_t      ie_sz[3];
+//    size_t      iv_sz[3];
+//    size_t      ie_sz[3];
 };
 
 

@@ -149,7 +149,7 @@ void mg_cyc(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, int nl, i
     for(int c=0; c<nc; c++)
     {
         //descend
-        for(int l=0; l<(mg->nl-1); l++)
+        for(int l=0; l<(nl-1); l++)
         {
             //levels
             struct lvl_obj *lf = &mg->lvls[l];
@@ -170,7 +170,7 @@ void mg_cyc(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, int nl, i
         mg_jac(ocl, mg, op, &mg->lvls[nl-1], nj);
         
         //ascend
-        for(int l=(mg->nl-2); l>=0; l--)
+        for(int l=(nl-2); l>=0; l--)
         {
             //levels
             struct lvl_obj *lf = &mg->lvls[l];

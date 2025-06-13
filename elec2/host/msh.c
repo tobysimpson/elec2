@@ -30,13 +30,13 @@ void msh_ini(struct msh_obj *msh)
     msh->ne_sz[1]   = msh->ne.y;
     msh->ne_sz[2]   = msh->ne.z;
     
-    msh->iv_sz[0]   = msh->nv.x - 2;
-    msh->iv_sz[1]   = msh->nv.y - 2;
-    msh->iv_sz[2]   = msh->nv.z - 2;
-    
-    msh->ie_sz[0]   = msh->ne.x - 2;
-    msh->ie_sz[1]   = msh->ne.y - 2;
-    msh->ie_sz[2]   = msh->ne.z - 2;
+//    msh->iv_sz[0]   = msh->nv.x - 2;
+//    msh->iv_sz[1]   = msh->nv.y - 2;
+//    msh->iv_sz[2]   = msh->nv.z - 2;
+//    
+//    msh->ie_sz[0]   = msh->ne.x - 2;
+//    msh->ie_sz[1]   = msh->ne.y - 2;
+//    msh->ie_sz[2]   = msh->ne.z - 2;
     
     printf("msh [%2u %2u %2u] [%4u %4u %4u] %10u %e \n",
            msh->le.x, msh->le.y, msh->le.z,
