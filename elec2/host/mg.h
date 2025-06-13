@@ -39,45 +39,37 @@ struct op_obj
 struct mg_obj
 {
     //levels
-    cl_int             nl;     //levels
-    cl_int             nj;     //jac iter
-    cl_int             nc;     //v-cycles
+    int nl;
     
     //array
     struct lvl_obj *lvls;
     
-    //ini
-    cl_kernel       ele_ini;
-    
-    //trans
+    //kernels
+    cl_kernel       ele_geo;
     cl_kernel       ele_prj;
     cl_kernel       ele_itp;
     
-    //err
-    cl_kernel       ele_rsq;
-    cl_kernel       ele_esq;
-    cl_kernel       vec_sum;
-    
     //ops
     struct op_obj ops[2];
-
 };
 
 
+
 //init
-void    mg_ini(struct ocl_obj *ocl, struct mg_obj *mg, struct msh_obj *msh);
-void    mg_fin(struct ocl_obj *ocl, struct mg_obj *mg);
+void mg_ini(struct ocl_obj *ocl, struct mg_obj *mg, struct msh_obj *msh);
+void mg_fin(struct ocl_obj *ocl, struct mg_obj *mg);
 
-void    mg_itp(struct ocl_obj *ocl, struct mg_obj *mg, struct lvl_obj *lf, struct lvl_obj *lc);
-void    mg_prj(struct ocl_obj *ocl, struct mg_obj *mg, struct lvl_obj *lf, struct lvl_obj *lc);
+void mg_itp(struct ocl_obj *ocl, struct mg_obj *mg, struct lvl_obj *lf, struct lvl_obj *lc);
+void mg_prj(struct ocl_obj *ocl, struct mg_obj *mg, struct lvl_obj *lf, struct lvl_obj *lc);
 
-void    mg_fwd(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, struct lvl_obj *lvl);
-void    mg_jac(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, struct lvl_obj *lvl);
-void    mg_res(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, struct lvl_obj *lvl);
+void mg_geo(struct ocl_obj *ocl, struct mg_obj *mg, struct lvl_obj *lvl, cl_mem *ss);
 
-void    mg_cyc(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op);
+//void mg_fwd(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, struct lvl_obj *lvl);
+void mg_jac(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, struct lvl_obj *lvl, int nj);
+void mg_res(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, struct lvl_obj *lvl);
 
-float   mg_red(struct ocl_obj *ocl, struct mg_obj *mg, cl_mem uu, const cl_int n);
-void    mg_nrm(struct ocl_obj *ocl, struct mg_obj *mg, struct lvl_obj *lvl);
+
+void mg_cyc(struct ocl_obj *ocl, struct mg_obj *mg, struct op_obj *op, int nl, int nj, int nc);
+
 
 #endif /* mg_h */

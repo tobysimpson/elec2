@@ -14,12 +14,21 @@
 
 /*
  ===================================
+ const
+ ===================================
+ */
+
+constant int3 off_fac[6]  = {{-1,0,0},{+1,0,0},{0,-1,0},{0,+1,0},{0,0,-1},{0,0,+1}};
+constant int3 off_vtx[8]  = {{0,0,0},{1,0,0},{0,1,0},{1,1,0},{0,0,1},{1,0,1},{0,1,1},{1,1,1}};
+
+/*
+ ===================================
  ion
  ===================================
  */
 
 //monodomain
-constant float MD_SIG_H     = 1e-1f;        //heart conductivity (mS mm^-1) = muA mV^-1 mm^-1
+constant float MD_SIG_H     = 2e-1f;        //heart conductivity (mS mm^-1) = muA mV^-1 mm^-1
 constant float MD_SIG_T     = 1e-0f;        //torso
 
 //mitchell-schaffer
@@ -56,8 +65,6 @@ kernel void ele_ion(const  struct msh_obj  msh,
     return;
 }
 
-
-
 /*
  ===================================
  ini
@@ -66,74 +73,52 @@ kernel void ele_ion(const  struct msh_obj  msh,
 
 kernel void ele_ini(const  struct msh_obj  msh,
                     global float           *uu,
-                    global float           *bb,
-                    global float           *rr,
+                    global float           *ww,
+                    global float           *gg)
+{
+    int3  ele_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
+    int   ele_idx  = utl_idx1(ele_pos, msh.ne);
+        
+    //write
+    uu[ele_idx] = (float)((ele_pos.z==(msh.ne.z-1))*(gg[ele_idx]<=0e0f));
+    ww[ele_idx] = 1e0f;
+    
+    return;
+}
+
+
+kernel void ele_geo(const  struct msh_obj  msh,
                     global float           *gg,
                     global float4          *ss)
 {
     int3  ele_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
     int   ele_idx  = utl_idx1(ele_pos, msh.ne);
     
-    float3 x = ele_x(ele_pos, msh);
+    float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
     
-    float g = 1.0f;
+    //geom
+    float g = 1;
+  
+    //sdf
+//    float g = sdf_cub(x,(float3){50.0f,50.0f,25.0f}, (float3){25.0f,25.0f,25.0f});
     
     //spheres
     for(int i=0; i<200; i++)
     {
-        g = sdf_smin(g , sdf_sph(x, ss[i].xyz, ss[i].w), 2.5f);
+        g = sdf_smin(g , sdf_sph(x, ss[i].xyz, ss[i].w), 3.0f);
     }
     
     //write
-    uu[ele_idx] = x.x<10.0f;
-    bb[ele_idx] = 0e0f;
-    rr[ele_idx] = 0e0f;
     gg[ele_idx] = g;
- 
+    
     return;
 }
 
 /*
  ============================
- poisson -Au=b
+ ecg poisson Au=0
  ============================
  */
-
-
-//forward
-kernel void ele_fwd0(const  struct msh_obj   msh,
-                     global float            *uu,
-                     global float            *bb,
-                     global float            *gg)
-{
-    int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
-    int     ele_idx = utl_idx1(ele_pos, msh.ne);
-    
-    //torso
-    if(gg[ele_idx]>0e0f)
-    {
-        float s = 0.0f;
-
-        //stencil
-        for(int i=0; i<6; i++)
-        {
-            int3    adj_pos = ele_pos + off_fac[i];
-            int     adj_bnd = utl_bnd1(adj_pos, msh.ne);//zero neuman on domain, dirichlet on heart
-            int     adj_idx = utl_idx1(adj_pos, msh.ne);
-            
-            if(adj_bnd)
-            {
-                s += uu[adj_idx] - uu[ele_idx];
-            }
-        }
-        
-        //fwd
-        bb[ele_idx] = MD_SIG_T*msh.rdx2*s;
-    }
-    
-    return;
-}
-
 
 
 //residual
@@ -164,11 +149,8 @@ kernel void ele_res0(const  struct msh_obj   msh,
             }
         }
         
-        //fwd
-        float Au = MD_SIG_T*msh.rdx2*s;
-        
-        //res
-        rr[ele_idx] = bb[ele_idx] - Au;
+        //res -Au
+        rr[ele_idx] = -MD_SIG_T*msh.rdx2*s;
     }
     
     return;
@@ -204,72 +186,23 @@ kernel void ele_jac0(const  struct msh_obj   msh,
             }
         }
         
-        //fwd
-        float Au = MD_SIG_T*msh.rdx2*s;
-        
-        //res
-        float r = bb[ele_idx] - Au;
+        //res -Au
+        float r = -MD_SIG_T*msh.rdx2*s;
         
         //du = D^-1(r)
-        uu[ele_idx] += 0.9*msh.dx2*r/d;
+        uu[ele_idx] += msh.dx2*r/d;
     }
     
     return;
 }
-
 
 /*
  ================================================
- crank nicolson (I-alp*A)uˆ(t+1) = (I+alp*A)uˆ(t)
+ implicit euler (I-alp*A)uˆ(t+1) = uˆ(t)
  ================================================
  */
 
-
-//rhs crank
-kernel void ele_fwd1(const  struct msh_obj   msh,
-                     global float            *uu,
-                     global float            *bb,
-                     global float            *gg)
-{
-    int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
-    int     ele_idx = utl_idx1(ele_pos, msh.ne);
-    
-    //heart
-    if(gg[ele_idx]<=0e0f)
-    {
-        float u = uu[ele_idx];
-        
-        float s = 0.0f;
-        float d = 0.0f;
-        
-        //stencil
-        for(int i=0; i<6; i++)
-        {
-            int3    adj_pos = ele_pos + off_fac[i];
-            int     adj_idx = utl_idx1(adj_pos, msh.ne);
-            int     adj_bnd = utl_bnd1(adj_pos, msh.ne)*(gg[adj_idx]<=0e0f);
-            
-            
-            if(adj_bnd)
-            {
-                d -= 1e0f;
-                s += uu[adj_idx];
-            }
-        }
-        
-        //constants
-        float alp = MD_SIG_H*msh.dt*msh.rdx2;
-        
-        //rhs
-        bb[ele_idx] = u + 0.5f*alp*(s + d*u);
-    }
-    
-    return;
-}
-
-
-
-//residual crank
+//residual euler
 kernel void ele_res1(const  struct msh_obj   msh,
                      global float            *uu,
                      global float            *bb,
@@ -305,7 +238,7 @@ kernel void ele_res1(const  struct msh_obj   msh,
         float alp = MD_SIG_H*msh.dt*msh.rdx2;
         
         //lhs
-        float Au = u - 0.5f*alp*(s + d*u);
+        float Au = u - alp*(s + d*u);
         
         //res
         rr[ele_idx] = bb[ele_idx] - Au;
@@ -315,7 +248,7 @@ kernel void ele_res1(const  struct msh_obj   msh,
 }
 
 
-//jacobi crank
+//jacobi euler
 kernel void ele_jac1(const  struct msh_obj   msh,
                      global float            *uu,
                      global float            *bb,
@@ -348,13 +281,11 @@ kernel void ele_jac1(const  struct msh_obj   msh,
         float alp = MD_SIG_H*msh.dt*msh.rdx2;
         
         //ie
-        uu[ele_idx] = (bb[ele_idx] + 0.5f*alp*s)/(1e0f - 0.5f*alp*d);
+        uu[ele_idx] = (bb[ele_idx] + alp*s)/(1e0f - alp*d);
     }
     
     return;
 }
-
-
 
 
 
@@ -365,7 +296,7 @@ kernel void ele_jac1(const  struct msh_obj   msh,
  */
 
 
-//projection
+//projection - fvm
 kernel void ele_prj(const  struct msh_obj   mshc,    //coarse    (out)
                     global float            *rrf,    //fine      (in)
                     global float            *uuc,    //coarse    (out)
@@ -398,7 +329,7 @@ kernel void ele_prj(const  struct msh_obj   mshc,    //coarse    (out)
 }
 
 
-//interp
+//interp - fvm
 kernel void ele_itp(const  struct msh_obj   mshf,    //fine      (out)
                     global float            *uuc,    //coarse    (in)
                     global float            *uuf)    //fine      (out)

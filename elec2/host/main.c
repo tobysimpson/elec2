@@ -13,8 +13,8 @@
 //#endif
 
 #include <stdio.h>
-#include <time.h>
 #include <sys/stat.h>
+#include <time.h>
 
 #include "ocl.h"
 #include "msh.h"
@@ -22,11 +22,12 @@
 #include "io.h"
 
 
-//multigrid benchmark - FVM by element
-//not as good as vtx because of dirichlet conditions
+//electrophysiology FVM
 int main(int argc, const char * argv[])
 {
     printf("hello\n");
+ 
+    clock_t t0 = clock();
     
     //create folders
     mkdir("/Users/toby/Downloads/raw", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
@@ -44,23 +45,20 @@ int main(int argc, const char * argv[])
     
     //mesh
     struct msh_obj msh;
-//    msh.x0 = (cl_float3){-1e0f,-1e0f,-1e0f};
-//    msh.x1 = (cl_float3){+1e0f,+1e0f,+1e0f};
-    msh.le = (cl_int3){8,8,8};
+    msh.le = (cl_int3){9,9,9};
     msh.dx = 100.0f*powf(2e0f, -msh.le.x);
     msh.dt = 0.5f;
     msh_ini(&msh);
     
     //multigrid
     struct mg_obj mg;
-    mg.nl = 3; //msh.le.x/2; //limit for geom
-    mg.nj = 5;
-    mg.nc = 5;
+    mg.nl =  msh.le.x;
     mg_ini(&ocl, &mg, &msh);
     
+
     /*
      ====================
-     init
+     spheres
      ====================
      */
     
@@ -70,48 +68,64 @@ int main(int argc, const char * argv[])
     srand((unsigned int)time(NULL));
     for(int i=0; i<ns; i++)
     {
-        ss_hst[i] = (cl_float4){10.0f+rand()%80, 10.0f+rand()%80, 10.0f+rand()%80, 1.0f};
+        ss_hst[i] = (cl_float4){10.0f+rand()%80, rand()%100, rand()%100, 1.0f};
     }
     
+    /*
+     ====================
+     memory, kernels
+     ====================
+     */
+    
     //memory
-    cl_mem ww = clCreateBuffer(ocl.context, CL_MEM_HOST_NO_ACCESS , msh.nv_tot*sizeof(cl_float4), NULL, &ocl.err);
+    cl_mem ww = clCreateBuffer(ocl.context, CL_MEM_HOST_NO_ACCESS , msh.nv_tot*sizeof(cl_float), NULL, &ocl.err);
     cl_mem ss = clCreateBuffer(ocl.context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, ns*sizeof(cl_float4), ss_hst, NULL);
     
     //kernel
+    cl_kernel ele_ini = clCreateKernel(ocl.program, "ele_ini", &ocl.err);
     cl_kernel ele_ion = clCreateKernel(ocl.program, "ele_ion", &ocl.err);
     
+    //fine
+    struct lvl_obj lf = mg.lvls[0];
+    
     //args
-    ocl.err = clSetKernelArg(ele_ion,  0, sizeof(struct msh_obj),    (void*)&msh);
-    ocl.err = clSetKernelArg(ele_ion,  1, sizeof(cl_mem),            (void*)&mg.lvls[0].uu);
+    ocl.err = clSetKernelArg(ele_ini,  0, sizeof(struct msh_obj),    (void*)&lf.msh);
+    ocl.err = clSetKernelArg(ele_ini,  1, sizeof(cl_mem),            (void*)&lf.uu);
+    ocl.err = clSetKernelArg(ele_ini,  2, sizeof(cl_mem),            (void*)&ww);
+    ocl.err = clSetKernelArg(ele_ini,  3, sizeof(cl_mem),            (void*)&lf.gg);
+    
+    ocl.err = clSetKernelArg(ele_ion,  0, sizeof(struct msh_obj),    (void*)&lf.msh);
+    ocl.err = clSetKernelArg(ele_ion,  1, sizeof(cl_mem),            (void*)&lf.uu);
     ocl.err = clSetKernelArg(ele_ion,  2, sizeof(cl_mem),            (void*)&ww);
-    ocl.err = clSetKernelArg(ele_ion,  3, sizeof(cl_mem),            (void*)&mg.lvls[0].gg);
+    ocl.err = clSetKernelArg(ele_ion,  3, sizeof(cl_mem),            (void*)&lf.gg);
     
-    //pattern for reset
-    cl_float ptn = 1e0f;
     
-    //reset
-    ocl.err = clEnqueueFillBuffer(ocl.command_queue, ww, &ptn, sizeof(ptn), 0, msh.ne_tot*sizeof(ptn), 0, NULL, &ocl.event);
+    /*
+     ====================
+     init
+     ====================
+     */
     
-    //levels
-    for(int l=0; l<1; l++)//mg.nl
+    //geom
+    for(int l=0; l<lf.msh.le.x; l++)
     {
-        //instance
-        struct lvl_obj *lvl = &mg.lvls[l];
+        //geom
+        mg_geo(&ocl, &mg, &mg.lvls[l], &ss);
         
-        //ini
-        ocl.err = clSetKernelArg(mg.ele_ini,  0, sizeof(struct msh_obj),    (void*)&lvl->msh);
-        ocl.err = clSetKernelArg(mg.ele_ini,  1, sizeof(cl_mem),            (void*)&lvl->uu);
-        ocl.err = clSetKernelArg(mg.ele_ini,  2, sizeof(cl_mem),            (void*)&lvl->bb);
-        ocl.err = clSetKernelArg(mg.ele_ini,  3, sizeof(cl_mem),            (void*)&lvl->rr);
-        ocl.err = clSetKernelArg(mg.ele_ini,  4, sizeof(cl_mem),            (void*)&lvl->gg);
-        ocl.err = clSetKernelArg(mg.ele_ini,  5, sizeof(cl_mem),            (void*)&ss);
-        
-        //init
-        ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, mg.ele_ini, 3, NULL, msh.ne_sz, NULL, 0, NULL, &ocl.event);
+        //write
     }
     
+    //init
+    ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ele_ini, 3, NULL, (size_t*)&msh.ne_sz, NULL, 0, NULL, &ocl.event);
     
-    //frames
+    
+    /*
+     ====================
+     calc
+     ====================
+     */
+    
+    //loop
     for(int frm=0; frm<100; frm++)
     {
         if((frm % 10)==0)
@@ -119,32 +133,31 @@ int main(int argc, const char * argv[])
             printf("%03d\n",frm);
         }
         
-        
         //write
-        wrt_xmf(&ocl, &msh, frm);
-        wrt_flt1(&ocl, &msh, &mg.lvls[0].uu, "uu", frm, msh.ne_tot);
-        wrt_flt1(&ocl, &msh, &mg.lvls[0].bb, "bb", frm, msh.ne_tot);
-        wrt_flt1(&ocl, &msh, &mg.lvls[0].rr, "rr", frm, msh.ne_tot);
-        wrt_flt1(&ocl, &msh, &mg.lvls[0].gg, "gg", frm, msh.ne_tot);
-    
-        
-        //time per frame
-        for(int t=0; t<10; t++)
-        {
-            //cn rhs
-            mg_fwd(&ocl, &mg, &mg.ops[1], &mg.lvls[0]);
-            
-            //cn jac
-            mg_jac(&ocl, &mg, &mg.ops[1], &mg.lvls[0]);
-            
-            //ion
-            ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ele_ion, 3, NULL, msh.ne_sz, NULL, 0, NULL, &ocl.event);
-        }
+        wrt_xmf(&ocl, &lf.msh, frm);
+        wrt_flt1(&ocl, &lf.msh, &lf.uu, "uu", frm, lf.msh.ne_tot);
+        wrt_flt1(&ocl, &lf.msh, &lf.gg, "gg", frm, lf.msh.ne_tot);
 
-        //ecg mg
-        mg_cyc(&ocl, &mg, &mg.ops[0]);
-     
+
+        //time per frame
+        for(int t=0; t<1; t++)
+        {
+            //euler rhs
+            ocl.err = clEnqueueCopyBuffer(ocl.command_queue, lf.uu, lf.bb, 0, 0, msh.ne_tot*sizeof(cl_float), 0, NULL, &ocl.event);
+            
+            //euler mg
+            mg_cyc(&ocl, &mg, &mg.ops[1], 1, 10, 1); //(nl,nj,nc)
+            
+            //membrane
+            ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ele_ion, 3, NULL, msh.ne_sz, NULL, 0, NULL, &ocl.event);
+            
+        }//t
+        
+        //ecg
+//        mg_cyc(&ocl, &mg, &mg.ops[0], 3, 3, 5);
+        
     }//frm
+    
     
 
 
@@ -169,6 +182,8 @@ int main(int argc, const char * argv[])
     mg_fin(&ocl, &mg);
     ocl_fin(&ocl);
     
+    clock_t t1 = clock();
+    printf("%f\n",(t1 - t0)/(double)CLOCKS_PER_SEC);
     
     printf("done\n");
     
