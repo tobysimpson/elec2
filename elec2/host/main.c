@@ -43,12 +43,10 @@ int main(int argc, const char * argv[])
     struct ocl_obj ocl;
     ocl_ini(&ocl);
     
-    int sx = 100;
-    
     //mesh
     struct msh_obj msh;
     msh.le = (cl_int3){6,6,6};
-    msh.dx = sx*powf(2e0f, -msh.le.x);
+    msh.dx = 128.0f*powf(2.0f, -msh.le.x);
     msh.dt = 0.5f;
     msh_ini(&msh);
     
@@ -70,7 +68,14 @@ int main(int argc, const char * argv[])
     srand((unsigned int)time(NULL));
     for(int i=0; i<ns; i++)
     {
-        ss_hst[i] = (cl_float4){rand()%sx, rand()%sx, rand()%sx, 1.0f};
+        cl_float4 s;
+        
+        s.x = 0.8f*msh.dx*(rand()%msh.ne.x - msh.ne.x/2);
+        s.y = 0.8f*msh.dx*(rand()%msh.ne.y - msh.ne.y/2);
+        s.z = 0.8f*msh.dx*(rand()%msh.ne.z - msh.ne.z/2);
+        s.w = 1.0f;
+        
+        ss_hst[i] = s;
     }
     
     /*

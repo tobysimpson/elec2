@@ -48,10 +48,10 @@ kernel void ele_ini(const  struct msh_obj  msh,
     int3  ele_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
     int   ele_idx  = utl_idx1(ele_pos, msh.ne);
     
-    float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
+    float3 x = msh.dx*(convert_float3(ele_pos - msh.ne/2) + 0.5f);
         
     //write
-    uu[ele_idx] = (float)((x.x<10)*(gg[ele_idx].w<=0e0f));
+    uu[ele_idx] = (float)((x.x<-50)*(gg[ele_idx].w<=0e0f));
     ww[ele_idx] = 1e0f;
     
     return;
@@ -65,10 +65,10 @@ kernel void ele_geo(const  struct msh_obj  msh,
     int3  ele_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
     int   ele_idx  = utl_idx1(ele_pos, msh.ne);
     
-    float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
+    float3 x = msh.dx*(convert_float3(ele_pos - msh.ne/2) + 0.5f);
     
     //geom
-    float4 g = (float4){1.0f, 2.0f, 3.0f, 1.0f};
+    float4 g = (float4){x, 1.0f};
   
     //sdf
 //    float g = sdf_cub(x,(float3){50.0f,50.0f,25.0f}, (float3){25.0f,25.0f,25.0f});
@@ -76,7 +76,7 @@ kernel void ele_geo(const  struct msh_obj  msh,
     //spheres
     for(int i=0; i<200; i++)
     {
-        g.w = sdf_smin(g.w , sdf_sph(x, ss[i].xyz, ss[i].w), 2.9f);
+        g.w = sdf_smin(g.w , sdf_sph(x, ss[i].xyz, ss[i].w), 3.4f);
     }
     
     //write

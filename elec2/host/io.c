@@ -28,7 +28,8 @@ void wrt_xmf(struct ocl_obj *ocl, struct msh_obj *msh, int idx)
     fprintf(file1,"    <Topology name=\"topo\" TopologyType=\"3DCoRectMesh\" Dimensions=\"%u %u %u\"></Topology>\n", msh->nv.z, msh->nv.y, msh->nv.x);
     fprintf(file1,"      <Geometry name=\"geo\" Type=\"ORIGIN_DXDYDZ\">\n");
     fprintf(file1,"        <!-- Origin -->\n");
-    fprintf(file1,"        <DataItem Format=\"XML\" Dimensions=\"3\">%f %f %f</DataItem>\n", 0e0f, 0e0f, 0e0f);
+//    fprintf(file1,"        <DataItem Format=\"XML\" Dimensions=\"3\">%f %f %f</DataItem>\n", 0e0f, 0e0f, 0e0f);
+    fprintf(file1,"        <DataItem Format=\"XML\" Dimensions=\"3\">%f %f %f</DataItem>\n", -msh->dx*(msh->ne.x/2), -msh->dx*(msh->ne.y/2), -msh->dx*(msh->ne.z/2));  //origin at centre
     fprintf(file1,"        <!-- DxDyDz -->\n");
     fprintf(file1,"        <DataItem Format=\"XML\" Dimensions=\"3\">%f %f %f</DataItem>\n", msh->dx, msh->dx, msh->dx);
     fprintf(file1,"      </Geometry>\n");
