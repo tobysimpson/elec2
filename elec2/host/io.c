@@ -40,8 +40,8 @@ void wrt_xmf(struct ocl_obj *ocl, struct msh_obj *msh, int idx)
     fprintf(file1,"             /Users/toby/Downloads/raw/uu.%02u%02u%02u.%03u.raw\n", msh->le.x, msh->le.y, msh->le.z, idx);
     fprintf(file1,"           </DataItem>\n");
     fprintf(file1,"         </Attribute>\n");
-    fprintf(file1,"         <Attribute Name=\"gg\" Center=\"Cell\" AttributeType=\"Scalar\">\n");
-    fprintf(file1,"           <DataItem Format=\"Binary\" Dimensions=\"%u %u %u 1\" Endian=\"Little\" Precision=\"4\" NumberType=\"Float\">\n", msh->ne.z, msh->ne.y, msh->ne.x);
+    fprintf(file1,"         <Attribute Name=\"gg\" Center=\"Cell\" AttributeType=\"Matrix\">\n");
+    fprintf(file1,"           <DataItem Format=\"Binary\" Dimensions=\"%u %u %u 4\" Endian=\"Little\" Precision=\"4\" NumberType=\"Float\">\n", msh->ne.z, msh->ne.y, msh->ne.x);
     fprintf(file1,"             /Users/toby/Downloads/raw/gg.%02u%02u%02u.%03d.raw\n", msh->le.x, msh->le.y, msh->le.z, idx);
     fprintf(file1,"           </DataItem>\n");
     fprintf(file1,"         </Attribute>\n");
@@ -66,7 +66,7 @@ void wrt_flt1(struct ocl_obj *ocl, struct msh_obj *msh, cl_mem *buf, char *dsc, 
     sprintf(file1_name, "%s/raw/%s.%02u%02u%02u.%03d.raw", ROOT_WRITE, dsc, msh->le.x, msh->le.y, msh->le.z, idx);
     file1 = fopen(file1_name,"wb");
     ptr1 = clEnqueueMapBuffer(ocl->command_queue, *buf, CL_TRUE, CL_MAP_READ, 0, n_tot*sizeof(cl_float), 0, NULL, NULL, &ocl->err);
-    fwrite(ptr1, sizeof(float), n_tot, file1);
+    fwrite(ptr1, sizeof(cl_float), n_tot, file1);
     clEnqueueUnmapMemObject(ocl->command_queue, *buf, ptr1, 0, NULL, NULL);
     
     //clean up
@@ -76,7 +76,7 @@ void wrt_flt1(struct ocl_obj *ocl, struct msh_obj *msh, cl_mem *buf, char *dsc, 
 }
 
 
-//float4
+//float4 -> vec3
 void wrt_flt3(struct ocl_obj *ocl, struct msh_obj *msh, cl_mem *buf, char *dsc, int idx, int n_tot)
 {
     FILE* file1;
@@ -99,6 +99,28 @@ void wrt_flt3(struct ocl_obj *ocl, struct msh_obj *msh, cl_mem *buf, char *dsc, 
     
     return;
 }
+
+
+//float4
+void wrt_flt4(struct ocl_obj *ocl, struct msh_obj *msh, cl_mem *buf, char *dsc, int idx, int n_tot)
+{
+    FILE* file1;
+    char file1_name[250];
+    cl_float4* ptr1;
+    
+    //buffer
+    sprintf(file1_name, "%s/raw/%s.%02u%02u%02u.%03d.raw", ROOT_WRITE, dsc, msh->le.x, msh->le.y, msh->le.z, idx);
+    file1 = fopen(file1_name,"wb");
+    ptr1 = clEnqueueMapBuffer(ocl->command_queue, *buf, CL_TRUE, CL_MAP_READ, 0, n_tot*sizeof(cl_float4), 0, NULL, NULL, &ocl->err);
+    fwrite(ptr1, sizeof(cl_float4), n_tot, file1);
+    clEnqueueUnmapMemObject(ocl->command_queue, *buf, ptr1, 0, NULL, NULL);
+    
+    //clean up
+    fclose(file1);
+    
+    return;
+}
+
 
 
 //write geom

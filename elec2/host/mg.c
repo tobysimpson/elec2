@@ -37,7 +37,7 @@ void mg_ini(struct ocl_obj *ocl, struct mg_obj *mg, struct msh_obj *msh)
         lvl->uu = clCreateBuffer(ocl->context, CL_MEM_HOST_READ_ONLY, lvl->msh.ne_tot*sizeof(cl_float), NULL, &ocl->err);
         lvl->bb = clCreateBuffer(ocl->context, CL_MEM_HOST_READ_ONLY, lvl->msh.ne_tot*sizeof(cl_float), NULL, &ocl->err);
         lvl->rr = clCreateBuffer(ocl->context, CL_MEM_HOST_READ_ONLY, lvl->msh.ne_tot*sizeof(cl_float), NULL, &ocl->err);
-        lvl->gg = clCreateBuffer(ocl->context, CL_MEM_HOST_READ_ONLY, lvl->msh.ne_tot*sizeof(cl_float), NULL, &ocl->err);
+        lvl->gg = clCreateBuffer(ocl->context, CL_MEM_HOST_READ_ONLY, lvl->msh.ne_tot*sizeof(cl_float4), NULL, &ocl->err);
     }
     
     //geo

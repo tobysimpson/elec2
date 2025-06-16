@@ -120,6 +120,8 @@ int main(int argc, const char * argv[])
         wrt_xmf(&ocl, &lvl.msh, 0);
 //        wrt_flt1(&ocl, &lvl.msh, &lvl.uu, "uu", 0, lvl.msh.ne_tot);
         wrt_flt1(&ocl, &lvl.msh, &lvl.gg, "gg", 0, lvl.msh.ne_tot);
+//        wrt_flt3(&ocl, &lvl.msh, &lvl.gg, "ff", 0, lvl.msh.ne_tot);
+
     }
     
 
@@ -147,7 +149,7 @@ int main(int argc, const char * argv[])
         //write
         wrt_xmf(&ocl, &lf.msh, frm);
         wrt_flt1(&ocl, &lf.msh, &lf.uu, "uu", frm, lf.msh.ne_tot);
-        wrt_flt1(&ocl, &lf.msh, &lf.gg, "gg", frm, lf.msh.ne_tot);
+        wrt_flt4(&ocl, &lf.msh, &lf.gg, "gg", frm, lf.msh.ne_tot);
 
 
         //time per frame

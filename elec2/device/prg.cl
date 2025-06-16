@@ -43,7 +43,7 @@ constant float MS_TAU_CLOSE = 100.0f;       //90 endocardium to 130 epi - longer
 kernel void ele_ini(const  struct msh_obj  msh,
                     global float           *uu,
                     global float           *ww,
-                    global float           *gg)
+                    global float4          *gg)
 {
     int3  ele_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
     int   ele_idx  = utl_idx1(ele_pos, msh.ne);
@@ -51,7 +51,7 @@ kernel void ele_ini(const  struct msh_obj  msh,
     float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
         
     //write
-    uu[ele_idx] = (float)((x.x<10)*(gg[ele_idx]<=0e0f));
+    uu[ele_idx] = (float)((x.x<10)*(gg[ele_idx].w<=0e0f));
     ww[ele_idx] = 1e0f;
     
     return;
@@ -59,7 +59,7 @@ kernel void ele_ini(const  struct msh_obj  msh,
 
 
 kernel void ele_geo(const  struct msh_obj  msh,
-                    global float           *gg,
+                    global float4          *gg,
                     global float4          *ss)
 {
     int3  ele_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
@@ -68,7 +68,7 @@ kernel void ele_geo(const  struct msh_obj  msh,
     float3 x = msh.dx*(convert_float3(ele_pos) + 0.5f);
     
     //geom
-    float g = 1;
+    float4 g = (float4){1.0f, 2.0f, 3.0f, 1.0f};
   
     //sdf
 //    float g = sdf_cub(x,(float3){50.0f,50.0f,25.0f}, (float3){25.0f,25.0f,25.0f});
@@ -76,7 +76,7 @@ kernel void ele_geo(const  struct msh_obj  msh,
     //spheres
     for(int i=0; i<200; i++)
     {
-        g = sdf_smin(g , sdf_sph(x, ss[i].xyz, ss[i].w), 2.9f);
+        g.w = sdf_smin(g.w , sdf_sph(x, ss[i].xyz, ss[i].w), 2.9f);
     }
     
     //write
@@ -96,7 +96,7 @@ kernel void ele_geo(const  struct msh_obj  msh,
 kernel void ele_ion(const  struct msh_obj  msh,
                     global float           *uu,
                     global float           *ww,
-                    global float           *gg)
+                    global float4          *gg)
 {
     int3 ele_pos  = {get_global_id(0), get_global_id(1), get_global_id(2)};
     int  ele_idx  = utl_idx1(ele_pos, msh.ne);
@@ -109,7 +109,7 @@ kernel void ele_ion(const  struct msh_obj  msh,
     float dw = (u<MS_V_GATE)?((1.0f - w)/MS_TAU_OPEN):(-w)/MS_TAU_CLOSE;      //gating variable
 
     //geom
-    int g = gg[ele_idx]<=0e0f;
+    int g = gg[ele_idx].w<=0e0f;
     
     //store
     uu[ele_idx] += (g)?msh.dt*du:0e0f;
@@ -132,13 +132,13 @@ kernel void ele_res0(const  struct msh_obj   msh,
                      global float            *uu,
                      global float            *bb,
                      global float            *rr,
-                     global float            *gg)
+                     global float4           *gg)
 {
     int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int     ele_idx = utl_idx1(ele_pos, msh.ne);
     
     //torso
-    if(gg[ele_idx]>0e0f)
+    if(gg[ele_idx].w>0e0f)
     {
         float s = 0.0f;
         
@@ -167,13 +167,13 @@ kernel void ele_res0(const  struct msh_obj   msh,
 kernel void ele_jac0(const  struct msh_obj   msh,
                      global float            *uu,
                      global float            *bb,
-                     global float            *gg)
+                     global float4           *gg)
 {
     int3  ele_pos  = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int   ele_idx  = utl_idx1(ele_pos, msh.ne);
 
     //torso
-    if(gg[ele_idx]>0e0f)
+    if(gg[ele_idx].w>0e0f)
     {
         float s = 0.0f;
         float d = 0.0f;
@@ -213,13 +213,13 @@ kernel void ele_res1(const  struct msh_obj   msh,
                      global float            *uu,
                      global float            *bb,
                      global float            *rr,
-                     global float            *gg)
+                     global float4           *gg)
 {
     int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int     ele_idx = utl_idx1(ele_pos, msh.ne);
     
     //heart
-    if(gg[ele_idx]<=0e0f)
+    if(gg[ele_idx].w<=0e0f)
     {
         float u = uu[ele_idx];
         
@@ -231,7 +231,7 @@ kernel void ele_res1(const  struct msh_obj   msh,
         {
             int3    adj_pos = ele_pos + off_fac[i];
             int     adj_idx = utl_idx1(adj_pos, msh.ne);
-            int     adj_bnd = utl_bnd1(adj_pos, msh.ne)*(gg[adj_idx]<=0e0f);
+            int     adj_bnd = utl_bnd1(adj_pos, msh.ne)*(gg[adj_idx].w<=0e0f);
             
             if(adj_bnd)
             {
@@ -258,13 +258,13 @@ kernel void ele_res1(const  struct msh_obj   msh,
 kernel void ele_jac1(const  struct msh_obj   msh,
                      global float            *uu,
                      global float            *bb,
-                     global float            *gg)
+                     global float4           *gg)
 {
     int3  ele_pos  = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
     int   ele_idx  = utl_idx1(ele_pos, msh.ne);
     
     //heart
-    if(gg[ele_idx]<=0e0f)
+    if(gg[ele_idx].w<=0e0f)
     {
         float s = 0.0f;
         float d = 0.0f;
@@ -274,7 +274,7 @@ kernel void ele_jac1(const  struct msh_obj   msh,
         {
             int3    adj_pos = ele_pos + off_fac[i];
             int     adj_idx = utl_idx1(adj_pos, msh.ne);
-            int     adj_bnd = utl_bnd1(adj_pos, msh.ne)*(gg[adj_idx]<=0e0f);
+            int     adj_bnd = utl_bnd1(adj_pos, msh.ne)*(gg[adj_idx].w<=0e0f);
             
             if(adj_bnd)
             {
