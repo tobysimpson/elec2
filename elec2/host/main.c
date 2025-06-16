@@ -156,7 +156,7 @@ int main(int argc, const char * argv[])
 
 
         //time per frame
-        for(int t=0; t<10; t++)
+        for(int t=0; t<20; t++)
         {
             //euler rhs
             ocl.err = clEnqueueCopyBuffer(ocl.command_queue, lf.uu, lf.bb, 0, 0, msh.ne_tot*sizeof(cl_float), 0, NULL, &ocl.event);
@@ -170,7 +170,7 @@ int main(int argc, const char * argv[])
         }//t
         
         //ecg (nl,nj,nc)
-        mg_cyc(&ocl, &mg, &mg.ops[0], 5, 5, 5);
+//        mg_cyc(&ocl, &mg, &mg.ops[0], 5, 5, 5);
         
     }//frm
     
