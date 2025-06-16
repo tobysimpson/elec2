@@ -76,7 +76,7 @@ kernel void ele_geo(const  struct msh_obj  msh,
     //spheres
     for(int i=0; i<200; i++)
     {
-        g = sdf_smin(g , sdf_sph(x, ss[i].xyz, ss[i].w), 2.5f);
+        g = sdf_smin(g , sdf_sph(x, ss[i].xyz, ss[i].w), 2.9f);
     }
     
     //write
@@ -196,7 +196,7 @@ kernel void ele_jac0(const  struct msh_obj   msh,
         float r = -MD_SIG_T*msh.rdx2*s;
         
         //du = D^-1(r)
-        uu[ele_idx] += msh.dx2*r/d;
+        uu[ele_idx] += 0.9f*msh.dx2*r/d;  //damp
     }
     
     return;

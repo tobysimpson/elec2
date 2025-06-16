@@ -43,10 +43,12 @@ int main(int argc, const char * argv[])
     struct ocl_obj ocl;
     ocl_ini(&ocl);
     
+    int sx = 100;
+    
     //mesh
     struct msh_obj msh;
     msh.le = (cl_int3){6,6,6};
-    msh.dx = 100.0f*powf(2e0f, -msh.le.x);
+    msh.dx = sx*powf(2e0f, -msh.le.x);
     msh.dt = 0.5f;
     msh_ini(&msh);
     
@@ -68,7 +70,7 @@ int main(int argc, const char * argv[])
     srand((unsigned int)time(NULL));
     for(int i=0; i<ns; i++)
     {
-        ss_hst[i] = (cl_float4){10.0f+rand()%80, 10.0f+rand()%80, 10.0f+rand()%80, 1.0f};
+        ss_hst[i] = (cl_float4){rand()%sx, rand()%sx, rand()%sx, 1.0f};
     }
     
     /*
@@ -109,11 +111,18 @@ int main(int argc, const char * argv[])
     //geom
     for(int l=0; l<lf.msh.le.x; l++)
     {
+        struct lvl_obj lvl = mg.lvls[l];
+        
         //geom
-        mg_geo(&ocl, &mg, &mg.lvls[l], &ss);
+        mg_geo(&ocl, &mg, &lvl, &ss);
         
         //write
+        wrt_xmf(&ocl, &lvl.msh, 0);
+//        wrt_flt1(&ocl, &lvl.msh, &lvl.uu, "uu", 0, lvl.msh.ne_tot);
+        wrt_flt1(&ocl, &lvl.msh, &lvl.gg, "gg", 0, lvl.msh.ne_tot);
     }
+    
+
     
     //init
     ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ele_ini, 3, NULL, (size_t*)&msh.ne_sz, NULL, 0, NULL, &ocl.event);
@@ -124,6 +133,8 @@ int main(int argc, const char * argv[])
      calc
      ====================
      */
+    
+
     
     //loop
     for(int frm=0; frm<100; frm++)
@@ -158,7 +169,7 @@ int main(int argc, const char * argv[])
         
     }//frm
     
-    
+  
     /*
      ====================
      final
