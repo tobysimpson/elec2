@@ -24,7 +24,7 @@ constant int3 off_vtx[8]  = {{0,0,0},{1,0,0},{0,1,0},{1,1,0},{0,0,1},{1,0,1},{0,
 
 //monodomain
 constant float MD_SIG_H     = 3e-1f;        //heart conductivity (mS mm^-1) = muA mV^-1 mm^-1
-constant float MD_SIG_T     = 1e-0f;        //torso
+constant float MD_SIG_T     = 1e+0f;        //torso
 
 //mitchell-schaffer
 constant float MS_V_GATE    = 0.13f;        //dimensionless (13 in the paper 15 for N?)
@@ -51,7 +51,7 @@ kernel void ele_ini(const  struct msh_obj  msh,
     float3 x = msh.dx*(convert_float3(ele_pos - msh.ne/2) + 0.5f);
         
     //write
-    uu[ele_idx] = (float)((x.x<-50)*(gg[ele_idx].w<=0e0f));
+    uu[ele_idx] = (float)((x.x<=-40)*(gg[ele_idx].w<=0e0f));
     ww[ele_idx] = 1e0f;
     
     return;
@@ -67,20 +67,21 @@ kernel void ele_geo(const  struct msh_obj  msh,
     
     float3 x = msh.dx*(convert_float3(ele_pos - msh.ne/2) + 0.5f);
     
-    //geom
-    float4 g = (float4){x, 1.0f};
-  
-    //sdf
-//    float g = sdf_cub(x,(float3){50.0f,50.0f,25.0f}, (float3){25.0f,25.0f,25.0f});
+//    //spheres
+//    float g = 1.0f;
+//    for(int i=0; i<150; i++)
+//    {
+//        g.w = sdf_smin(g.w , sdf_sph(x, ss[i].xyz, ss[i].w), 3.8f);
+//    }
     
-    //spheres
-    for(int i=0; i<200; i++)
-    {
-        g.w = sdf_smin(g.w , sdf_sph(x, ss[i].xyz, ss[i].w), 3.4f);
-    }
+    //sdf
+    float g = sdf_cub(x,(float3){0.0f,0.0f,0.0f}, (float3){50.0f,50.0f,50.0f});
+    
+    //fibres
+    float3 f = MD_SIG_H*(float3){all(x.yz>0.0f), (x.x>0.0f)*(x.z<0.0f), all(x.xy>0.0f)};
     
     //write
-    gg[ele_idx] = g;
+    gg[ele_idx] = (float4){f, g};
     
     return;
 }
@@ -204,9 +205,11 @@ kernel void ele_jac0(const  struct msh_obj   msh,
 
 /*
  ================================================
- implicit euler (I-alp*A)uˆ(t+1) = uˆ(t)
+ ion implicit euler (I-alp*A)uˆ(t+1) = uˆ(t)
  ================================================
  */
+
+/*
 
 //residual euler
 kernel void ele_res1(const  struct msh_obj   msh,
@@ -285,6 +288,105 @@ kernel void ele_jac1(const  struct msh_obj   msh,
         
         //constants
         float alp = MD_SIG_H*msh.dt*msh.rdx2;
+        
+        //ie
+        uu[ele_idx] = (bb[ele_idx] + alp*s)/(1e0f - alp*d);
+    }
+    
+    return;
+}
+
+*/
+
+/*
+ ================================================
+ ion implicit euler with fibres
+ ================================================
+ */
+
+//residual euler
+kernel void ele_res1(const  struct msh_obj   msh,
+                     global float            *uu,
+                     global float            *bb,
+                     global float            *rr,
+                     global float4           *gg)
+{
+    int3    ele_pos = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
+    int     ele_idx = utl_idx1(ele_pos, msh.ne);
+    
+    //heart
+    if(gg[ele_idx].w<=0e0f)
+    {
+        float u = uu[ele_idx];
+        
+        float s = 0.0f;
+        float d = 0.0f;
+        
+        //stencil
+        for(int i=0; i<6; i++)
+        {
+            int3    adj_pos = ele_pos + off_fac[i];
+            int     adj_idx = utl_idx1(adj_pos, msh.ne);
+            int     adj_bnd = utl_bnd1(adj_pos, msh.ne)*(gg[adj_idx].w<=0e0f);
+            
+            if(adj_bnd)
+            {
+                //conductivity - interp fibre and dot
+                float c = fabs(dot(0.5f*(gg[ele_idx] + gg[adj_idx]).xyz, convert_float3(off_fac[i])));
+                
+                d -= c;
+                s += c*uu[adj_idx];
+            }
+        }
+        
+        //constants
+        float alp = msh.dt*msh.rdx2;
+        
+        //lhs
+        float Au = u - alp*(s + d*u);
+        
+        //res
+        rr[ele_idx] = bb[ele_idx] - Au;
+    }
+        
+    return;
+}
+
+
+//jacobi euler
+kernel void ele_jac1(const  struct msh_obj   msh,
+                     global float            *uu,
+                     global float            *bb,
+                     global float4           *gg)
+{
+    int3  ele_pos  = (int3){get_global_id(0), get_global_id(1), get_global_id(2)};
+    int   ele_idx  = utl_idx1(ele_pos, msh.ne);
+    
+    //heart
+    if(gg[ele_idx].w<=0e0f)
+    {
+        float s = 0.0f;
+        float d = 0.0f;
+        
+        //stencil
+        for(int i=0; i<6; i++)
+        {
+            int3    adj_pos = ele_pos + off_fac[i];
+            int     adj_idx = utl_idx1(adj_pos, msh.ne);
+            int     adj_bnd = utl_bnd1(adj_pos, msh.ne)*(gg[adj_idx].w<=0e0f);
+            
+            if(adj_bnd)
+            {
+                //conductivity - interp fibre and dot
+                float c = fabs(dot(0.5f*(gg[ele_idx] + gg[adj_idx]).xyz, convert_float3(off_fac[i])));
+                
+                d -= c;
+                s += c*uu[adj_idx];
+            }
+        }
+        
+        //constants
+        float alp = msh.dt*msh.rdx2;
         
         //ie
         uu[ele_idx] = (bb[ele_idx] + alp*s)/(1e0f - alp*d);

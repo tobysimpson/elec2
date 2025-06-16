@@ -63,7 +63,7 @@ int main(int argc, const char * argv[])
      */
     
     //spheres
-    int ns = 200;
+    int ns = 150;
     cl_float4 ss_hst[ns];
     srand((unsigned int)time(NULL));
     for(int i=0; i<ns; i++)
@@ -73,7 +73,7 @@ int main(int argc, const char * argv[])
         s.x = 0.8f*msh.dx*(rand()%msh.ne.x - msh.ne.x/2);
         s.y = 0.8f*msh.dx*(rand()%msh.ne.y - msh.ne.y/2);
         s.z = 0.8f*msh.dx*(rand()%msh.ne.z - msh.ne.z/2);
-        s.w = 1.0f;
+        s.w = 0.2f;
         
         ss_hst[i] = s;
     }
@@ -129,8 +129,6 @@ int main(int argc, const char * argv[])
 
     }
     
-
-    
     //init
     ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ele_ini, 3, NULL, (size_t*)&msh.ne_sz, NULL, 0, NULL, &ocl.event);
     
@@ -163,16 +161,16 @@ int main(int argc, const char * argv[])
             //euler rhs
             ocl.err = clEnqueueCopyBuffer(ocl.command_queue, lf.uu, lf.bb, 0, 0, msh.ne_tot*sizeof(cl_float), 0, NULL, &ocl.event);
             
-            //euler mg
-            mg_cyc(&ocl, &mg, &mg.ops[1], 5, 5, 5);
+            //euler mg (nl,nj,nc)
+            mg_cyc(&ocl, &mg, &mg.ops[1], 3, 5, 5);
             
             //membrane
             ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ele_ion, 3, NULL, msh.ne_sz, NULL, 0, NULL, &ocl.event);
             
         }//t
         
-        //ecg
-        mg_cyc(&ocl, &mg, &mg.ops[0], 3, 3, 3);
+        //ecg (nl,nj,nc)
+        mg_cyc(&ocl, &mg, &mg.ops[0], 5, 5, 5);
         
     }//frm
     
