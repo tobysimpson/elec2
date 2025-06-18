@@ -23,7 +23,7 @@ constant int3 off_fac[6]  = {{-1,0,0},{+1,0,0},{0,-1,0},{0,+1,0},{0,0,-1},{0,0,+
 constant int3 off_vtx[8]  = {{0,0,0},{1,0,0},{0,1,0},{1,1,0},{0,0,1},{1,0,1},{0,1,1},{1,1,1}};
 
 //monodomain
-constant float MD_SIG_H     = 0.5f;        //heart conductivity (mS mm^-1) = muA mV^-1 mm^-1
+constant float MD_SIG_H     = 0.25f;        //heart conductivity (mS mm^-1) = muA mV^-1 mm^-1
 constant float MD_SIG_T     = 1e+0f;        //torso
 
 //mitchell-schaffer
@@ -67,18 +67,19 @@ kernel void ele_geo(const  struct msh_obj  msh,
     
     float3 x = msh.dx*(convert_float3(ele_pos - msh.ne/2) + 0.5f);
     
-//    //spheres
-//    float g = 1.0f;
-//    for(int i=0; i<150; i++)
-//    {
-//        g = sdf_smin(g , sdf_sph(x, ss[i].xyz, ss[i].w), 3.8f);
-//    }
+    //spheres
+    float g = 1.0f;
+    for(int i=0; i<150; i++)
+    {
+        g = sdf_smin(g , sdf_sph(x, ss[i].xyz, ss[i].w), 3.8f);
+    }
     
     //sdf
-    float g = sdf_cub(x,(float3){0.0f,0.0f,0.0f}, (float3){50.0f,50.0f,50.0f});
+//    float g = sdf_cub(x,(float3){0.0f,0.0f,0.0f}, (float3){50.0f,50.0f,50.0f});
     
     //fibres
-    float3 f = MD_SIG_H*(float3){all(x.yz>30.0f), (x.x>30.0f)*(x.z<-30.0f), all(x.xy>30.0f)} + (float3)0.01f;
+//    float3 f = MD_SIG_H*(float3){all(x.yz>30.0f), (x.x>30.0f)*(x.z<-30.0f), all(x.xy>30.0f)} + (float3)0.05f; //along edges
+    float3 f = MD_SIG_H*(float3){1.0f, 0.1f, 1.0f};
     
     //write
     gg[ele_idx] = (float4){f, g};
