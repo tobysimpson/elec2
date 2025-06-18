@@ -26,8 +26,6 @@
 int main(int argc, const char * argv[])
 {
     printf("hello\n");
- 
-    clock_t t0 = clock();
     
     //create folders
     mkdir("/Users/toby/Downloads/raw", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
@@ -195,8 +193,6 @@ int main(int argc, const char * argv[])
     mg_fin(&ocl, &mg);
     ocl_fin(&ocl);
     
-    clock_t t1 = clock();
-    printf("%f\n",(t1 - t0)/(double)CLOCKS_PER_SEC);
     
     printf("done\n");
     
