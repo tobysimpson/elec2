@@ -43,14 +43,14 @@ int main(int argc, const char * argv[])
     
     //mesh
     struct msh_obj msh;
-    msh.le = (cl_int3){7,7,7};
+    msh.le = (cl_int3){6,6,6};
     msh.dx = 128.0f*powf(2.0f, -msh.le.x);
     msh.dt = 0.5f;
     msh_ini(&msh);
     
     //multigrid
     struct mg_obj mg;
-    mg.nl =  msh.le.x/2;
+    mg.nl =  msh.le.x;
     mg_ini(&ocl, &mg, &msh);
     
 
@@ -122,9 +122,7 @@ int main(int argc, const char * argv[])
         //write
         wrt_xmf(&ocl, &lvl.msh, 0);
 //        wrt_flt1(&ocl, &lvl.msh, &lvl.uu, "uu", 0, lvl.msh.ne_tot);
-        wrt_flt1(&ocl, &lvl.msh, &lvl.gg, "gg", 0, lvl.msh.ne_tot);
-//        wrt_flt3(&ocl, &lvl.msh, &lvl.gg, "ff", 0, lvl.msh.ne_tot);
-
+        wrt_flt4(&ocl, &lvl.msh, &lvl.gg, "gg", 0, lvl.msh.ne_tot);
     }
     
     //init
