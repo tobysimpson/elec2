@@ -51,7 +51,7 @@ kernel void ele_ini(const  struct msh_obj  msh,
     float3 x = msh.dx*(convert_float3(ele_pos - msh.ne/2) + 0.5f);
         
     //write
-    uu[ele_idx] = (float)((x.x<=-45.0f)*(gg[ele_idx].w<=0e0f));
+    uu[ele_idx] = (float)((x.x<=-50.0f)*(gg[ele_idx].w<=0e0f));
     ww[ele_idx] = 1e0f;
     
     return;
