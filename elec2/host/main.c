@@ -43,7 +43,7 @@ int main(int argc, const char * argv[])
     
     //mesh
     struct msh_obj msh;
-    msh.le = (cl_int3){6,6,6};
+    msh.le = (cl_int3){7,7,7};
     msh.dx = 128.0f*powf(2.0f, -msh.le.x);
     msh.dt = 0.5f;
     msh_ini(&msh);
@@ -120,9 +120,9 @@ int main(int argc, const char * argv[])
         mg_geo(&ocl, &mg, &lvl, &ss);
         
         //write
-        wrt_xmf(&ocl, &lvl.msh, 0);
+//        wrt_xmf(&ocl, &lvl.msh, 0);
+//        wrt_flt4(&ocl, &lvl.msh, &lvl.gg, "gg", 0, lvl.msh.ne_tot);
 //        wrt_flt1(&ocl, &lvl.msh, &lvl.uu, "uu", 0, lvl.msh.ne_tot);
-        wrt_flt4(&ocl, &lvl.msh, &lvl.gg, "gg", 0, lvl.msh.ne_tot);
     }
     
     //init
@@ -152,13 +152,13 @@ int main(int argc, const char * argv[])
 
 
         //time per frame
-        for(int t=0; t<20; t++)
+        for(int t=0; t<10; t++)
         {
             //euler rhs
             ocl.err = clEnqueueCopyBuffer(ocl.command_queue, lf.uu, lf.bb, 0, 0, msh.ne_tot*sizeof(cl_float), 0, NULL, &ocl.event);
             
             //euler mg (nl,nj,nc)
-            mg_cyc(&ocl, &mg, &mg.ops[1], mg.nl, 5, 5);
+            mg_cyc(&ocl, &mg, &mg.ops[1], mg.nl/2, 5, 5);
             
             //membrane
             ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ele_ion, 3, NULL, msh.ne_sz, NULL, 0, NULL, &ocl.event);
@@ -166,7 +166,7 @@ int main(int argc, const char * argv[])
         }//t
         
         //ecg (nl,nj,nc)
-        mg_cyc(&ocl, &mg, &mg.ops[0], mg.nl, 5, 5);
+        mg_cyc(&ocl, &mg, &mg.ops[0], mg.nl/2, 5, 5);
         
     }//frm
     
