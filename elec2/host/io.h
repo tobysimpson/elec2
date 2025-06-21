@@ -17,12 +17,13 @@
 
 
 #define ROOT_WRITE  "/Users/toby/Downloads/"
+//#define ROOT_WRITE  "/Volumes/toby1/"
 
 
 void wrt_xmf(struct ocl_obj *ocl, struct msh_obj *msh, int idx);
 void wrt_flt1(struct ocl_obj *ocl, struct msh_obj *msh, cl_mem *buf, char *dsc, int idx, cl_int n_tot);
 void wrt_flt3(struct ocl_obj *ocl, struct msh_obj *msh, cl_mem *buf, char *dsc, int idx, cl_int n_tot);
 void wrt_flt4(struct ocl_obj *ocl, struct msh_obj *msh, cl_mem *buf, char *dsc, int idx, int n_tot);
-void wrt_geo(struct ocl_obj *ocl, struct mg_obj *mg);
+
 
 #endif /* io_h */

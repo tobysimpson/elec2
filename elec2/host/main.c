@@ -31,6 +31,12 @@ int main(int argc, const char * argv[])
     mkdir("/Users/toby/Downloads/raw", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     mkdir("/Users/toby/Downloads/xmf", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     
+    //timer
+    struct timespec t0;
+    struct timespec t1;
+    
+    clock_gettime(CLOCK_REALTIME, &t0);
+    
     /*
      ====================
      init
@@ -43,14 +49,14 @@ int main(int argc, const char * argv[])
     
     //mesh
     struct msh_obj msh;
-    msh.le = (cl_int3){7,7,7};
+    msh.le = (cl_int3){8,8,8};
     msh.dx = 128.0f*powf(2.0f, -msh.le.x);
     msh.dt = 0.5f;
     msh_ini(&msh);
     
     //multigrid
     struct mg_obj mg;
-    mg.nl =  msh.le.x;
+    mg.nl =  msh.le.x/2;
     mg_ini(&ocl, &mg, &msh);
     
 
@@ -149,6 +155,8 @@ int main(int argc, const char * argv[])
         wrt_xmf(&ocl, &lf.msh, frm);
         wrt_flt1(&ocl, &lf.msh, &lf.uu, "uu", frm, lf.msh.ne_tot);
         wrt_flt4(&ocl, &lf.msh, &lf.gg, "gg", frm, lf.msh.ne_tot);
+//        wrt_flt1(&ocl, &lf.msh, &lf.uu, "uu", 0, lf.msh.ne_tot);        //overwrite files
+//        wrt_flt4(&ocl, &lf.msh, &lf.gg, "gg", 0, lf.msh.ne_tot);
 
 
         //time per frame
@@ -158,7 +166,7 @@ int main(int argc, const char * argv[])
             ocl.err = clEnqueueCopyBuffer(ocl.command_queue, lf.uu, lf.bb, 0, 0, msh.ne_tot*sizeof(cl_float), 0, NULL, &ocl.event);
             
             //euler mg (nl,nj,nc)
-            mg_cyc(&ocl, &mg, &mg.ops[1], mg.nl/2, 5, 5);
+            mg_cyc(&ocl, &mg, &mg.ops[1], mg.nl, 5, 5);
             
             //membrane
             ocl.err = clEnqueueNDRangeKernel(ocl.command_queue, ele_ion, 3, NULL, msh.ne_sz, NULL, 0, NULL, &ocl.event);
@@ -166,11 +174,11 @@ int main(int argc, const char * argv[])
         }//t
         
         //ecg (nl,nj,nc)
-        mg_cyc(&ocl, &mg, &mg.ops[0], mg.nl/2, 5, 5);
+        mg_cyc(&ocl, &mg, &mg.ops[0], mg.nl, 5, 5);
         
     }//frm
     
-  
+    
     /*
      ====================
      final
@@ -191,6 +199,10 @@ int main(int argc, const char * argv[])
     mg_fin(&ocl, &mg);
     ocl_fin(&ocl);
     
+    
+    clock_gettime(CLOCK_REALTIME, &t1);
+
+    printf("%10d %f\n", msh.nv_tot, (1e9f*(t1.tv_sec - t0.tv_sec) + (t1.tv_nsec - t0.tv_nsec))*1e-9);
     
     printf("done\n");
     

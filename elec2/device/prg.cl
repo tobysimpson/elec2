@@ -124,7 +124,7 @@ kernel void ele_ion(const  struct msh_obj  msh,
 
 /*
  ============================
- ecg poisson Au=0
+ ecg laplace Au=0
  ============================
  */
 
